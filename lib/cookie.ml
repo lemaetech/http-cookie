@@ -138,6 +138,10 @@ type t = {
 }
 [@@deriving sexp_of, fields]
 
+let compare c1 c2 = 
+  let (Cookie_name nm1) = c1.name and (Cookie_name nm2) = c2.name in 
+  String.compare nm1 nm2
+
 (* -------------------------------------------------------------------------
  * Cookie query functions
  * -------------------------------------------------------------------------*)
