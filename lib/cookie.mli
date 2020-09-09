@@ -66,6 +66,8 @@ val sexp_of_t : t -> Sexp.t
 
 val compare : t -> t -> int 
 
+val hash : t -> int 
+
 val name : t -> string
 (** [name t] returns a cookie name. See
     https://tools.ietf.org/html/rfc6265#section-4.1.1 'cookie-name' definition
