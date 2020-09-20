@@ -1,6 +1,6 @@
 (lang dune 2.6)
 
-(name cookies)
+(name http_cookies)
 
 (generate_opam_files true)
 
@@ -14,7 +14,7 @@
 (maintainers "Bikal Lem")
 
 (package
- (name cookies)
+ (name http_cookies)
  (synopsis "HTTP cookies library for OCaml")
  (description
    "OCaml library to manipulate HTTP cookies. Adheres to RFC 6265.")

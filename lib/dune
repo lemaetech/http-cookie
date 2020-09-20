@@ -1,5 +1,4 @@
 (library
- (name cookies)
- (public_name cookies)
- (libraries unix)
- (wrapped false))
+ (name http_cookies)
+ (public_name http_cookies)
+ (libraries unix))
