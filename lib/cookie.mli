@@ -14,6 +14,20 @@
     The module closely follows the HTTP Cookie specification as defined in
     RFC6265 [https://tools.ietf.org/html/rfc6265]. *)
 
+module Same_site : sig
+  (** Represents 'Same-site' cookie attribute. See
+      https://tools.ietf.org/html/draft-ietf-httpbis-cookie-same-site-00. *)
+  type t =
+    | Default
+    | None
+    | Lax
+    | Strict
+
+  val equal : t -> t -> bool
+  val compare : t -> t -> int
+  val to_string : t -> string
+end
+
 type t
 (** Represents either a Cookie name-value in 'Cookie' request header or a set of
     cookie attributes in 'Set-Cookie' response header. *)

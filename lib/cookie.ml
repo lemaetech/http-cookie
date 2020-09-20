@@ -7,6 +7,22 @@
  *
  * %%NAME%% %%VERSION%%
  *-------------------------------------------------------------------------*)
+module Same_site = struct
+  type t =
+    | Default
+    | None
+    | Lax
+    | Strict
+
+  let compare (t1 : t) (t2 : t) = compare t1 t2
+  let equal (t1 : t) (t2 : t) = compare t1 t2 = 0
+
+  let to_string = function
+    | Default -> ""
+    | None    -> "None"
+    | Lax     -> "Lax"
+    | Strict  -> "Strict"
+end
 
 exception Cookie of string
 
@@ -364,7 +380,7 @@ let to_set_cookie_header_value t =
   O.iter (fun http_only -> if http_only then add_str "; HttpOnly") t.http_only ;
   O.iter
     (fun same_site ->
-      if Same_site.(equal default same_site) then add_str "; SameSite"
+      if Same_site.(equal Default same_site) then add_str "; SameSite"
       else add_str "; SameSite=%s" (Same_site.to_string same_site))
     t.same_site ;
   O.iter (fun extension -> add_str "; %s" extension) (extension t) ;
