@@ -1,6 +1,6 @@
 (lang dune 2.6)
 
-(name cookies)
+(name http_cookies)
 
 (generate_opam_files true)
 
@@ -14,7 +14,7 @@
 (maintainers "Bikal Lem")
 
 (package
- (name cookies)
+ (name http_cookies)
  (synopsis "HTTP cookies library for OCaml")
  (description
    "OCaml library to manipulate HTTP cookies. Adheres to RFC 6265.")
@@ -22,9 +22,4 @@
   (ocaml
    (>= 4.10.0))
   dune
-  ptime
-  ppx_sexp_conv
-  ppx_variants_conv
-  ppx_fields_conv
-  ppx_deriving
-  sexplib0))
+  base-unix))

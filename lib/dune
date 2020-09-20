@@ -1,7 +1,4 @@
 (library
- (name cookies)
- (public_name cookies)
- (wrapped false)
- (libraries ptime sexplib0)
- (preprocess
-  (pps ppx_sexp_conv ppx_variants_conv ppx_fields_conv ppx_deriving.std)))
+ (name http_cookies)
+ (public_name http_cookies)
+ (libraries unix))

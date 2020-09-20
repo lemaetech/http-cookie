@@ -10,12 +10,7 @@ bug-reports: "https://github.com/lemaetech/cookies/issues"
 depends: [
   "ocaml" {>= "4.10.0"}
   "dune" {>= "2.6"}
-  "ptime"
-  "ppx_sexp_conv"
-  "ppx_variants_conv"
-  "ppx_fields_conv"
-  "ppx_deriving"
-  "sexplib0"
+  "base-unix"
 ]
 build: [
   ["dune" "subst"] {pinned}
