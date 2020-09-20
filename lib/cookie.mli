@@ -8,7 +8,6 @@
  * %%NAME%% %%VERSION%%
  *-------------------------------------------------------------------------*)
 
-open Sexplib0
 
 (** The [Cookie] module implements HTTP Cookies sent in a 'Cookie' header in a
     http request or 'Set-Cookie' headers added in a http response.
@@ -35,7 +34,6 @@ type error =
   | `Cookie_extension_error of string
     (** Denotes 'cookie extension' attribute value validation errors. *) ]
 
-val sexp_of_error : error -> Sexp.t
 
 val create :
   name:string ->
@@ -62,7 +60,6 @@ val create :
     [~sanitize_name] if true and [name] contains '\n' or '\r' character then it
     is replaced by '-' character. *)
 
-val sexp_of_t : t -> Sexp.t
 
 val compare : t -> t -> int 
 

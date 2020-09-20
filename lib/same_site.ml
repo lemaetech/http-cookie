@@ -8,18 +8,20 @@
  * %%NAME%% %%VERSION%%
  *-------------------------------------------------------------------------*)
 
-type t = [ `Default | `None | `Lax | `Strict ] [@@deriving sexp_of, eq, ord]
+type t =
+  [ `Default
+  | `None
+  | `Lax
+  | `Strict ]
+[@@deriving eq, ord]
 
 let default = `Default
-
 let none = `None
-
 let lax = `Lax
-
 let strict = `Strict
 
 let to_cookie_string = function
   | `Default -> ""
-  | `None -> "None"
-  | `Lax -> "Lax"
-  | `Strict -> "Strict"
+  | `None    -> "None"
+  | `Lax     -> "Lax"
+  | `Strict  -> "Strict"

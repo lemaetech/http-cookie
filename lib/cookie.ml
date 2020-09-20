@@ -8,18 +8,13 @@
  * %%NAME%% %%VERSION%%
  *-------------------------------------------------------------------------*)
 
-open Sexplib0.Sexp_conv
-
 module R = struct
   include Result
 
   module O = struct
     let ( >>= ) = bind
-
     let ( >>| ) r f = map f r
-
     let ( let* ) = ( >>= )
-
     let ( let+ ) = ( >>| )
   end
 end
@@ -41,28 +36,32 @@ module Ptime = struct
       | `Sun -> "Sun"
     in
     let month = function
-      | 1 -> "Jan"
-      | 2 -> "Feb"
-      | 3 -> "Mar"
-      | 4 -> "Apr"
-      | 5 -> "May"
-      | 6 -> "Jun"
-      | 7 -> "Jul"
-      | 8 -> "Aug"
-      | 9 -> "Sep"
+      | 1  -> "Jan"
+      | 2  -> "Feb"
+      | 3  -> "Mar"
+      | 4  -> "Apr"
+      | 5  -> "May"
+      | 6  -> "Jun"
+      | 7  -> "Jul"
+      | 8  -> "Aug"
+      | 9  -> "Sep"
       | 10 -> "Oct"
       | 11 -> "Nov"
       | 12 -> "Dec"
-      | _ -> assert false
+      | _  -> assert false
     in
     let (y, m, d), ((hh, min, sec), _tz) =
       Ptime.to_date_time ~tz_offset_s:0 t
     in
-    Printf.sprintf "%s, %02d %s %04d %02d:%02d:%02d GMT" weekday d (month m) y
-      hh min sec
-
-  let sexp_of_t t =
-    Ptime.to_rfc3339 ~tz_offset_s:0 t |> Sexplib0.Sexp_conv.sexp_of_string
+    Printf.sprintf
+      "%s, %02d %s %04d %02d:%02d:%02d GMT"
+      weekday
+      d
+      (month m)
+      y
+      hh
+      min
+      sec
 end
 
 module String = struct
@@ -73,16 +72,13 @@ module String = struct
     for i = 0 to Bytes.length b - 1 do
       let c = Bytes.get b i in
       if Char.equal c pattern then Bytes.set b i with_ else ()
-    done;
+    done ;
     Bytes.to_string b
 end
 
 module Option = struct
   include Option
-
-  module O = struct
-    let ( let* ) = bind
-  end
+  module O = struct let ( let* ) = bind end
 
   let some_if cond a = if cond then Some a else None
 end
@@ -90,77 +86,64 @@ end
 open R.O
 
 let[@inline] ( >> ) f g x = g (f x)
-
 let sprintf = Printf.sprintf
 
-type cookie_name = Cookie_name of string [@unboxed]
-[@@deriving sexp_of, variants]
-
-type cookie_value = Cookie_value of string [@unboxed]
-[@@deriving sexp_of, variants]
-
-type domain_value = Domain_value of string [@unboxed]
-[@@deriving sexp_of, variants]
-
-type cookie_path = Cookie_path of string [@unboxed]
-[@@deriving sexp_of, variants]
-
-type cookie_max_age = Cookie_max_age of int [@unboxed]
-[@@deriving sexp_of, variants]
+type cookie_name = Cookie_name of string [@unboxed] [@@deriving variants]
+type cookie_value = Cookie_value of string [@unboxed] [@@deriving variants]
+type domain_value = Domain_value of string [@unboxed] [@@deriving variants]
+type cookie_path = Cookie_path of string [@unboxed] [@@deriving variants]
+type cookie_max_age = Cookie_max_age of int [@unboxed] [@@deriving variants]
 
 type cookie_extension = Cookie_extension of string [@unboxed]
-[@@deriving sexp_of, variants]
+[@@deriving variants]
 
 type cookie_expires = Cookie_expires of Ptime.t [@unboxed]
-[@@deriving sexp_of, variants]
+[@@deriving variants]
 
 type error =
-  [ `Cookie_name_error of string
-  | `Cookie_value_error of string
+  [ `Cookie_name_error      of string
+  | `Cookie_value_error     of string
   | `Cookie_domain_av_error of string
-  | `Cookie_path_error of string
-  | `Cookie_max_age_error of string
+  | `Cookie_path_error      of string
+  | `Cookie_max_age_error   of string
   | `Cookie_extension_error of string ]
-[@@deriving sexp_of, variants]
+[@@deriving variants]
 
-type t = {
-  name : cookie_name;
-  value : cookie_value;
-  path : cookie_path option; [@sexp.option]
-  domain : domain_value option; [@sexp.option]
-  expires : cookie_expires option; [@sexp.option]
-  max_age : cookie_max_age option; [@sexp.option]
-  secure : bool option; [@sexp.option]
-  http_only : bool option; [@sexp.option]
-  same_site : Same_site.t option; [@sexp.option]
-  extension : cookie_extension option; [@sexp.option]
-  raw : string option; [@sexp.option] (* Raw cookie string *)
-}
-[@@deriving sexp_of, fields]
+type t =
+  { name : cookie_name
+  ; value : cookie_value
+  ; path : cookie_path option [@sexp.option]
+  ; domain : domain_value option [@sexp.option]
+  ; expires : cookie_expires option [@sexp.option]
+  ; max_age : cookie_max_age option [@sexp.option]
+  ; secure : bool option [@sexp.option]
+  ; http_only : bool option [@sexp.option]
+  ; same_site : Same_site.t option [@sexp.option]
+  ; extension : cookie_extension option [@sexp.option]
+  ; raw : string option [@sexp.option] (* Raw cookie string *) }
+[@@deriving fields]
 
-let compare c1 c2 = 
-  let (Cookie_name nm1) = c1.name and (Cookie_name nm2) = c2.name in 
+let compare c1 c2 =
+  let (Cookie_name nm1) = c1.name
+  and (Cookie_name nm2) = c2.name in
   String.compare nm1 nm2
 
 (* -------------------------------------------------------------------------
  * Cookie query functions
  * -------------------------------------------------------------------------*)
 
-let name { name = Cookie_name nm; _ } = nm
+let name {name = Cookie_name nm; _} = nm
+let value {value = Cookie_value v; _} = v
+let path {path; _} = Option.map (fun (Cookie_path cp) -> cp) path
+let domain {domain; _} = Option.map (fun (Domain_value v) -> v) domain
 
-let value { value = Cookie_value v; _ } = v
-
-let path { path; _ } = Option.map (fun (Cookie_path cp) -> cp) path
-
-let domain { domain; _ } = Option.map (fun (Domain_value v) -> v) domain
-
-let expires { expires; _ } =
+let expires {expires; _} =
   Option.map (fun (Cookie_expires expires) -> expires) expires
 
-let max_age { max_age; _ } =
+let max_age {max_age; _} =
   Option.map (fun (Cookie_max_age max_age) -> max_age) max_age
 
-let extension { extension; _ } =
+let extension {extension; _} =
   Option.map (fun (Cookie_extension ext) -> ext) extension
 
 (*--------------------------------------------------------------------------
@@ -191,12 +174,14 @@ let parse_cookie_av attr_value make err =
       Some (make value)
 
 let parse_path path =
-  err cookie_path_error
+  err
+    cookie_path_error
     "Cookie 'Path' attribute value contains invalid character '%c'"
   |> parse_cookie_av path cookie_path
 
 let parse_extension extension =
-  err cookie_extension_error
+  err
+    cookie_extension_error
     "Cookie extension value contains invalid character '%c'"
   |> parse_cookie_av extension cookie_extension
 
@@ -204,8 +189,24 @@ let parse_extension extension =
    in https://tools.ietf.org/html/rfc2616#section-2.2 *)
 let parse_name name =
   let is_separator = function
-    | '(' | ')' | '<' | '>' | '@' | ',' | ';' | ':' | '\\' | '"' | '/' | '['
-    | ']' | '?' | '=' | '{' | '}' | ' ' ->
+    | '('
+    | ')'
+    | '<'
+    | '>'
+    | '@'
+    | ','
+    | ';'
+    | ':'
+    | '\\'
+    | '"'
+    | '/'
+    | '['
+    | ']'
+    | '?'
+    | '='
+    | '{'
+    | '}'
+    | ' ' ->
         true
     | c when Char.code c = 9 -> true
     | _ -> false
@@ -291,7 +292,10 @@ let parse_domain_av domain_av =
       let label_count = label_count + 1 in
       let c = s.[i] in
       match c with
-      | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' -> validate c label_count (i + 1, s)
+      | 'a' .. 'z'
+      | 'A' .. 'Z'
+      | '0' .. '9' ->
+          validate c label_count (i + 1, s)
       | '-' ->
           if Char.equal last_char '.' then
             return_err "Character before '-' cannot be '.'" c label_count
@@ -302,7 +306,8 @@ let parse_domain_av domain_av =
           else if label_count > 63 || label_count = 0 then
             return_err
               "Domain name label can't exceed 63 characters or have 0 length"
-              last_char label_count
+              last_char
+              label_count
           else validate c 0 (i + 1, s) (* reset label_count *)
       | _ ->
           return_err (sprintf "Invalid character '%c'" c) last_char label_count
@@ -326,7 +331,7 @@ let parse_domain_av domain_av =
     else R.ok ()
   in
   match domain_av with
-  | None -> R.ok None
+  | None           -> R.ok None
   | Some domain_av ->
       let* () = validate_length domain_av in
       let domain_av =
@@ -343,10 +348,11 @@ let parse_domain_av domain_av =
 
 let parse_max_age max_age =
   match max_age with
-  | None -> R.ok None
+  | None    -> R.ok None
   | Some ma ->
       if ma <= 0 then
-        err cookie_max_age_error
+        err
+          cookie_max_age_error
           "Cookies 'Max-Age' attribute is less than or equal to 0"
       else (cookie_max_age >> Option.some >> R.ok) ma
 
@@ -394,19 +400,17 @@ let create
   let* extension = parse_extension extension in
   let expires = Option.map (fun expires -> Cookie_expires expires) expires in
   R.ok
-    {
-      name;
-      value;
-      path;
-      domain;
-      expires;
-      max_age;
-      secure;
-      http_only;
-      same_site;
-      extension;
-      raw = None;
-    }
+    { name
+    ; value
+    ; path
+    ; domain
+    ; expires
+    ; max_age
+    ; secure
+    ; http_only
+    ; same_site
+    ; extension
+    ; raw = None }
 
 let of_cookie_header header =
   String.split_on_char ~sep:';' header
@@ -422,7 +426,7 @@ let of_cookie_header header =
          let* cookie =
            create ~name ~value ~sanitize_name:false ~sanitize_value:false ()
          in
-         R.ok { cookie with raw = Some raw })
+         R.ok {cookie with raw = Some raw})
 
 (*---------------------------------------------------------------------------
  * Cookie.t string conversion functions
@@ -432,23 +436,23 @@ let to_set_cookie_header_value t =
   let module O = Option in
   let buf = Buffer.create 50 in
   let add_str fmt = Format.ksprintf (Buffer.add_string buf) fmt in
-  add_str "%s=%s" (name t) (value t);
-  O.iter (fun path -> add_str "; Path=%s" path) (path t);
-  O.iter (fun d -> add_str "; Domain=%s" d) (domain t);
+  add_str "%s=%s" (name t) (value t) ;
+  O.iter (fun path -> add_str "; Path=%s" path) (path t) ;
+  O.iter (fun d -> add_str "; Domain=%s" d) (domain t) ;
   O.iter
     (fun expires -> add_str "; Expires=%s" @@ Ptime.to_rfc1123 expires)
-    (expires t);
+    (expires t) ;
   O.iter
     (fun max_age -> if max_age > 0 then add_str "; Max-Age=%d" max_age)
-    (max_age t);
-  O.iter (fun secure -> if secure then add_str "; Secure") t.secure;
-  O.iter (fun http_only -> if http_only then add_str "; HttpOnly") t.http_only;
+    (max_age t) ;
+  O.iter (fun secure -> if secure then add_str "; Secure") t.secure ;
+  O.iter (fun http_only -> if http_only then add_str "; HttpOnly") t.http_only ;
   O.iter
     (fun same_site ->
       if Same_site.(equal default same_site) then add_str "; SameSite"
       else add_str "; SameSite=%s" (Same_site.to_cookie_string same_site))
-    t.same_site;
-  O.iter (fun extension -> add_str "; %s" extension) (extension t);
+    t.same_site ;
+  O.iter (fun extension -> add_str "; %s" extension) (extension t) ;
   Buffer.contents buf
 
 let to_cookie_header_value t = sprintf "%s=%s" (name t) (value t)

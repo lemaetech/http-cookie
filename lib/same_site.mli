@@ -13,17 +13,9 @@ type t
     https://tools.ietf.org/html/draft-ietf-httpbis-cookie-same-site-00. *)
 
 val default : t
-
 val none : t
-
 val lax : t
-
 val strict : t
-
 val equal : t -> t -> bool
-
 val compare : t -> t -> int
-
-val sexp_of_t : t -> Sexplib0.Sexp.t
-
 val to_cookie_string : t -> string
