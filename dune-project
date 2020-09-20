@@ -22,5 +22,4 @@
   (ocaml
    (>= 4.10.0))
   dune
-  ptime
-  ppx_fields_conv))
+  ptime))

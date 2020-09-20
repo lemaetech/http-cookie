@@ -115,7 +115,6 @@ type t =
   ; same_site : Same_site.t option
   ; extension : string option
   ; raw : string option (* Raw cookie string *) }
-[@@deriving fields]
 
 let compare {name = name1; _} {name = name2; _} = String.compare name1 name2
 let name c = c.name
@@ -125,6 +124,9 @@ let domain c = c.domain
 let expires c = c.expires
 let max_age c = c.max_age
 let extension c = c.extension
+let same_site c = c.same_site
+let http_only c = c.http_only
+let secure c = c.secure
 
 let is_control_char c =
   let code = Char.code c in

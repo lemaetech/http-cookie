@@ -2,6 +2,4 @@
  (name cookies)
  (public_name cookies)
  (wrapped false)
- (libraries ptime)
- (preprocess
-  (pps ppx_fields_conv)))
+ (libraries ptime))
