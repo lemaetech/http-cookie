@@ -88,67 +88,51 @@ open R.O
 let[@inline] ( >> ) f g x = g (f x)
 let sprintf = Printf.sprintf
 
-type cookie_name = Cookie_name of string [@unboxed] [@@deriving variants]
-type cookie_value = Cookie_value of string [@unboxed] [@@deriving variants]
-type domain_value = Domain_value of string [@unboxed] [@@deriving variants]
-type cookie_path = Cookie_path of string [@unboxed] [@@deriving variants]
-type cookie_max_age = Cookie_max_age of int [@unboxed] [@@deriving variants]
-
-type cookie_extension = Cookie_extension of string [@unboxed]
-[@@deriving variants]
-
-type cookie_expires = Cookie_expires of Ptime.t [@unboxed]
-[@@deriving variants]
+(* type cookie_name = Cookie_name of string [@unboxed] *)
+(* type cookie_value = Cookie_value of string [@unboxed] *)
+(* type domain_value = Domain_value of string [@unboxed] *)
+(* type cookie_path = Cookie_path of string [@unboxed] *)
+(* type cookie_max_age = Cookie_max_age of int [@unboxed] *)
+(* type cookie_extension = Cookie_extension of string [@unboxed] *)
+(* type cookie_expires = Cookie_expires of Ptime.t [@unboxed] *)
 
 type error =
-  [ `Cookie_name_error      of string
-  | `Cookie_value_error     of string
-  | `Cookie_domain_av_error of string
-  | `Cookie_path_error      of string
-  | `Cookie_max_age_error   of string
-  | `Cookie_extension_error of string ]
-[@@deriving variants]
+  | Cookie_name_error      of string
+  | Cookie_value_error     of string
+  | Cookie_domain_av_error of string
+  | Cookie_path_error      of string
+  | Cookie_max_age_error   of string
+  | Cookie_extension_error of string
+
+let cookie_name_error s = Cookie_name_error s
+let cookie_value_error s = Cookie_value_error s
+let cookie_domain_av_error s = Cookie_domain_av_error s
+let cookie_path_error s = Cookie_path_error s
+let cookie_max_age_error s = Cookie_max_age_error s
+let cookie_extension_error s = Cookie_extension_error s
 
 type t =
-  { name : cookie_name
-  ; value : cookie_value
-  ; path : cookie_path option
-  ; domain : domain_value option
-  ; expires : cookie_expires option
-  ; max_age : cookie_max_age option
+  { name : string
+  ; value : string
+  ; path : string option
+  ; domain : string option
+  ; expires : Ptime.t option
+  ; max_age : int option
   ; secure : bool option
   ; http_only : bool option
   ; same_site : Same_site.t option
-  ; extension : cookie_extension option
+  ; extension : string option
   ; raw : string option (* Raw cookie string *) }
 [@@deriving fields]
 
-let compare c1 c2 =
-  let (Cookie_name nm1) = c1.name
-  and (Cookie_name nm2) = c2.name in
-  String.compare nm1 nm2
-
-(* -------------------------------------------------------------------------
- * Cookie query functions
- * -------------------------------------------------------------------------*)
-
-let name {name = Cookie_name nm; _} = nm
-let value {value = Cookie_value v; _} = v
-let path {path; _} = Option.map (fun (Cookie_path cp) -> cp) path
-let domain {domain; _} = Option.map (fun (Domain_value v) -> v) domain
-
-let expires {expires; _} =
-  Option.map (fun (Cookie_expires expires) -> expires) expires
-
-let max_age {max_age; _} =
-  Option.map (fun (Cookie_max_age max_age) -> max_age) max_age
-
-let extension {extension; _} =
-  Option.map (fun (Cookie_extension ext) -> ext) extension
-
-(*--------------------------------------------------------------------------
- * Cookie Parsing.
- * -------------------------------------------------------------------------*)
+let compare {name = name1; _} {name = name2; _} = String.compare name1 name2
+let name c = c.name
+let value c = c.value
+let path c = c.path
+let domain c = c.domain
+let expires c = c.expires
+let max_age c = c.max_age
+let extension c = c.extension
 
 let is_control_char c =
   let code = Char.code c in
@@ -158,7 +142,7 @@ let err f fmt = Format.ksprintf (f >> R.error) fmt
 
 (* Parses cookie attribute value. Cookie attribute values shouldn't contain any
    CTL(control characters) or ';' char. *)
-let parse_cookie_av attr_value make err =
+let parse_cookie_av attr_value err =
   let rec validate i av =
     if i >= String.length av then R.ok av
     else
@@ -171,19 +155,19 @@ let parse_cookie_av attr_value make err =
   | Some value when String.length value = 0 -> R.ok None
   | Some value ->
       let+ value = validate 0 value in
-      Some (make value)
+      Some value
 
 let parse_path path =
   err
     cookie_path_error
     "Cookie 'Path' attribute value contains invalid character '%c'"
-  |> parse_cookie_av path cookie_path
+  |> parse_cookie_av path
 
 let parse_extension extension =
   err
     cookie_extension_error
     "Cookie extension value contains invalid character '%c'"
-  |> parse_cookie_av extension cookie_extension
+  |> parse_cookie_av extension
 
 (* Parses a given cookie into a cookie_name. Valid cookie name/token as defined
    in https://tools.ietf.org/html/rfc2616#section-2.2 *)
@@ -232,7 +216,7 @@ let parse_name name =
     if String.length name > 0 then R.ok name else err "0 length cookie name."
   in
   let+ name = validate 0 name in
-  Cookie_name name
+  name
 
 (* Based on https://golang.org/src/net/http/cookie.go
  * https://tools.ietf.org/html/rfc6265#section-4.1.1
@@ -278,13 +262,13 @@ let parse_value value =
     else err "Cookie value length must be > 0."
   in
   let+ value = strip_quotes value |> validate 0 in
-  Cookie_value value
+  value
 
 (** See https://tools.ietf.org/html/rfc1034#section-3.5 and
     https://tools.ietf.org/html/rfc1123#section-2 *)
 let parse_domain_av domain_av =
   let return_err err_msg last_char label_count =
-    (R.error (`Cookie_domain_av_error err_msg), last_char, label_count)
+    (R.error (Cookie_domain_av_error err_msg), last_char, label_count)
   in
   let rec validate last_char label_count (i, s) =
     if i >= String.length s then (R.ok s, last_char, label_count)
@@ -344,7 +328,7 @@ let parse_domain_av domain_av =
       let* domain_av = domain_av in
       let* () = validate_last_char last_char in
       let+ () = validate_label_length label_count in
-      Some (Domain_value domain_av)
+      Some domain_av
 
 let parse_max_age max_age =
   match max_age with
@@ -354,7 +338,7 @@ let parse_max_age max_age =
         err
           cookie_max_age_error
           "Cookies 'Max-Age' attribute is less than or equal to 0"
-      else (cookie_max_age >> Option.some >> R.ok) ma
+      else (Option.some >> R.ok) ma
 
 (* -------------------------------------------------------------------------
  * Sanitize functions
@@ -362,19 +346,17 @@ let parse_max_age max_age =
 
 (** Sanitizes cookie_value by double quoting it if it starts or ends in '
     '(space) or ','(comma) character. *)
-let sanitize_cookie_value (Cookie_value v as cv) =
+let sanitize_cookie_value v =
   let is_space_comma c = String.equal c " " || String.equal c "," in
   let start_char = String.sub v ~pos:0 ~len:1 in
   let end_char = String.sub v ~pos:(String.length v - 1) ~len:1 in
-  if is_space_comma start_char || is_space_comma end_char then
-    cookie_value @@ "\"" ^ v ^ "\""
-  else cv
+  if is_space_comma start_char || is_space_comma end_char then "\"" ^ v ^ "\""
+  else v
 
 (** Sanitizes cookie name by replacing \n or \r with '-' character. *)
-let sanitive_cookie_name (Cookie_name name) =
+let sanitive_cookie_name name =
   String.replace_all ~pattern:'\n' ~with_:'-' name
   |> String.replace_all ~pattern:'\r' ~with_:'-'
-  |> cookie_name
 
 let create
     ~name
@@ -398,7 +380,6 @@ let create
   let* path = parse_path path in
   let* max_age = parse_max_age max_age in
   let* extension = parse_extension extension in
-  let expires = Option.map (fun expires -> Cookie_expires expires) expires in
   R.ok
     { name
     ; value

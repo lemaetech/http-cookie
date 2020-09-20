@@ -8,7 +8,6 @@
  * %%NAME%% %%VERSION%%
  *-------------------------------------------------------------------------*)
 
-
 (** The [Cookie] module implements HTTP Cookies sent in a 'Cookie' header in a
     http request or 'Set-Cookie' headers added in a http response.
 
@@ -20,36 +19,34 @@ type t
     cookie attributes in 'Set-Cookie' response header. *)
 
 type error =
-  private
-  [> `Cookie_name_error of string
-     (** Denotes 'cookie name' validation and parsing errors. *)
-  | `Cookie_value_error of string
-    (** Denotes 'cookie value' validation and parsing errors. *)
-  | `Cookie_domain_av_error of string
-    (** Denotes 'cookie domain' attribue value validation and parsing errors. *)
-  | `Cookie_path_error of string
-    (** Denotes 'cookie path' attribute value validation and parsing errors. *)
-  | `Cookie_max_age_error of string
-    (** Denotes 'cookie max-age' attribute value validation errors. *)
-  | `Cookie_extension_error of string
-    (** Denotes 'cookie extension' attribute value validation errors. *) ]
-
+  | Cookie_name_error      of string
+      (** Denotes 'cookie name' validation and parsing errors. *)
+  | Cookie_value_error     of string
+      (** Denotes 'cookie value' validation and parsing errors. *)
+  | Cookie_domain_av_error of string
+      (** Denotes 'cookie domain' attribue value validation and parsing errors. *)
+  | Cookie_path_error      of string
+      (** Denotes 'cookie path' attribute value validation and parsing errors. *)
+  | Cookie_max_age_error   of string
+      (** Denotes 'cookie max-age' attribute value validation errors. *)
+  | Cookie_extension_error of string
+      (** Denotes 'cookie extension' attribute value validation errors. *)
 
 val create :
-  name:string ->
-  value:string ->
-  ?sanitize_name:bool ->
-  ?sanitize_value:bool ->
-  ?path:string ->
-  ?domain:string ->
-  ?expires:Ptime.t ->
-  ?max_age:int ->
-  ?secure:bool ->
-  ?http_only:bool ->
-  ?same_site:Same_site.t ->
-  ?extension:string ->
-  unit ->
-  (t, error) result
+     name:string
+  -> value:string
+  -> ?sanitize_name:bool
+  -> ?sanitize_value:bool
+  -> ?path:string
+  -> ?domain:string
+  -> ?expires:Ptime.t
+  -> ?max_age:int
+  -> ?secure:bool
+  -> ?http_only:bool
+  -> ?same_site:Same_site.t
+  -> ?extension:string
+  -> unit
+  -> (t, error) result
 (** [create ... ()] parse a cookie instance [t] from given value parameters. If
     the given values parses successfully, then [Ok t] is returned. If an error
     is encountered while parsing then an [Error err] is returned.
@@ -60,8 +57,7 @@ val create :
     [~sanitize_name] if true and [name] contains '\n' or '\r' character then it
     is replaced by '-' character. *)
 
-
-val compare : t -> t -> int 
+val compare : t -> t -> int
 
 val name : t -> string
 (** [name t] returns a cookie name. See

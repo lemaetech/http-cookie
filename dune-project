@@ -23,5 +23,4 @@
    (>= 4.10.0))
   dune
   ptime
-  ppx_variants_conv
   ppx_fields_conv))
