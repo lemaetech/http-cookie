@@ -4,4 +4,4 @@
  (wrapped false)
  (libraries ptime)
  (preprocess
-  (pps ppx_variants_conv ppx_fields_conv ppx_deriving.std)))
+  (pps ppx_variants_conv ppx_fields_conv)))

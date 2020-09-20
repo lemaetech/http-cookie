@@ -450,7 +450,7 @@ let to_set_cookie_header_value t =
   O.iter
     (fun same_site ->
       if Same_site.(equal default same_site) then add_str "; SameSite"
-      else add_str "; SameSite=%s" (Same_site.to_cookie_string same_site))
+      else add_str "; SameSite=%s" (Same_site.to_string same_site))
     t.same_site ;
   O.iter (fun extension -> add_str "; %s" extension) (extension t) ;
   Buffer.contents buf

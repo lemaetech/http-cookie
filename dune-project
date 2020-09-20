@@ -23,8 +23,5 @@
    (>= 4.10.0))
   dune
   ptime
-  ppx_sexp_conv
   ppx_variants_conv
-  ppx_fields_conv
-  ppx_deriving
-  sexplib0))
+  ppx_fields_conv))

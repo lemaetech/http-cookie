@@ -18,4 +18,4 @@ val lax : t
 val strict : t
 val equal : t -> t -> bool
 val compare : t -> t -> int
-val to_cookie_string : t -> string
+val to_string : t -> string

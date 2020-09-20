@@ -13,14 +13,15 @@ type t =
   | `None
   | `Lax
   | `Strict ]
-[@@deriving eq, ord]
 
 let default = `Default
 let none = `None
 let lax = `Lax
 let strict = `Strict
+let compare (t1 : t) (t2 : t) = compare t1 t2
+let equal (t1 : t) (t2 : t) = compare t1 t2 = 0
 
-let to_cookie_string = function
+let to_string = function
   | `Default -> ""
   | `None    -> "None"
   | `Lax     -> "Lax"
