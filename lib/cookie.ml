@@ -88,14 +88,6 @@ open R.O
 let[@inline] ( >> ) f g x = g (f x)
 let sprintf = Printf.sprintf
 
-(* type cookie_name = Cookie_name of string [@unboxed] *)
-(* type cookie_value = Cookie_value of string [@unboxed] *)
-(* type domain_value = Domain_value of string [@unboxed] *)
-(* type cookie_path = Cookie_path of string [@unboxed] *)
-(* type cookie_max_age = Cookie_max_age of int [@unboxed] *)
-(* type cookie_extension = Cookie_extension of string [@unboxed] *)
-(* type cookie_expires = Cookie_expires of Ptime.t [@unboxed] *)
-
 type error =
   | Cookie_name_error      of string
   | Cookie_value_error     of string
