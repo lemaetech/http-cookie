@@ -112,15 +112,15 @@ type error =
 type t =
   { name : cookie_name
   ; value : cookie_value
-  ; path : cookie_path option [@sexp.option]
-  ; domain : domain_value option [@sexp.option]
-  ; expires : cookie_expires option [@sexp.option]
-  ; max_age : cookie_max_age option [@sexp.option]
-  ; secure : bool option [@sexp.option]
-  ; http_only : bool option [@sexp.option]
-  ; same_site : Same_site.t option [@sexp.option]
-  ; extension : cookie_extension option [@sexp.option]
-  ; raw : string option [@sexp.option] (* Raw cookie string *) }
+  ; path : cookie_path option
+  ; domain : domain_value option
+  ; expires : cookie_expires option
+  ; max_age : cookie_max_age option
+  ; secure : bool option
+  ; http_only : bool option
+  ; same_site : Same_site.t option
+  ; extension : cookie_extension option
+  ; raw : string option (* Raw cookie string *) }
 [@@deriving fields]
 
 let compare c1 c2 =
