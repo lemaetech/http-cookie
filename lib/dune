@@ -1,4 +1,4 @@
 (library
  (name http_cookies)
- (public_name http_cookies)
+ (public_name http-cookies)
  (libraries unix))
