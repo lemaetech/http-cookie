@@ -18,20 +18,6 @@ type t
 (** Represents either a Cookie name-value in 'Cookie' request header or a set of
     cookie attributes in 'Set-Cookie' response header. *)
 
-type error =
-  | Cookie_name_error      of string
-      (** Denotes 'cookie name' validation and parsing errors. *)
-  | Cookie_value_error     of string
-      (** Denotes 'cookie value' validation and parsing errors. *)
-  | Cookie_domain_av_error of string
-      (** Denotes 'cookie domain' attribue value validation and parsing errors. *)
-  | Cookie_path_error      of string
-      (** Denotes 'cookie path' attribute value validation and parsing errors. *)
-  | Cookie_max_age_error   of string
-      (** Denotes 'cookie max-age' attribute value validation errors. *)
-  | Cookie_extension_error of string
-      (** Denotes 'cookie extension' attribute value validation errors. *)
-
 exception Cookie of string
 
 val create :
@@ -48,7 +34,7 @@ val create :
   -> ?same_site:Same_site.t
   -> ?extension:string
   -> unit
-  -> (t, error) result
+  -> (t, _) result
 (** [create ... ()] parse a cookie instance [t] from given value parameters. If
     the given values parses successfully, then [Ok t] is returned. If an error
     is encountered while parsing then an [Error err] is returned.
@@ -108,7 +94,7 @@ val extension : t -> string option
 (** [extension t] returns a cookie extension value. See k
     https://tools.ietf.org/html/rfc6265#section-4.1.1 *)
 
-val of_cookie_header : string -> (t, error) result list
+val of_cookie_header : string -> (t, _) result list
 (** [of_cookie_header s] parses [s] - a string value which represents HTTP
     'Cookie' header value as defined in
     https://tools.ietf.org/html/rfc6265#section-4.2 and returns a list of

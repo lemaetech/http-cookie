@@ -86,13 +86,13 @@ open R.O
 let[@inline] ( >> ) f g x = g (f x)
 let sprintf = Printf.sprintf
 
-type error =
-  | Cookie_name_error      of string
-  | Cookie_value_error     of string
-  | Cookie_domain_av_error of string
-  | Cookie_path_error      of string
-  | Cookie_max_age_error   of string
-  | Cookie_extension_error of string
+(* type error = *)
+(*   | Cookie_name_error      of string *)
+(*   | Cookie_value_error     of string *)
+(*   | Cookie_domain_av_error of string *)
+(*   | Cookie_path_error      of string *)
+(*   | Cookie_max_age_error   of string *)
+(*   | Cookie_extension_error of string *)
 
 type t =
   { name : string
@@ -246,9 +246,6 @@ let parse_value value =
 (** See https://tools.ietf.org/html/rfc1034#section-3.5 and
     https://tools.ietf.org/html/rfc1123#section-2 *)
 let parse_domain_av domain_av =
-  let return_err err_msg last_char label_count =
-    (R.error (Cookie_domain_av_error err_msg), last_char, label_count)
-  in
   let rec validate last_char label_count (i, s) =
     if i >= String.length s then (R.ok s, last_char, label_count)
     else
@@ -261,19 +258,15 @@ let parse_domain_av domain_av =
           validate c label_count (i + 1, s)
       | '-' ->
           if Char.equal last_char '.' then
-            return_err "Character before '-' cannot be '.'" c label_count
+            err "Character before '-' cannot be '.'"
           else validate c label_count (i + 1, s)
       | '.' ->
           if Char.equal last_char '.' || Char.equal last_char '-' then
-            return_err "Character before '.' cannot be '.' or '-'" c label_count
+            err "Character before '.' cannot be '.' or '-'"
           else if label_count > 63 || label_count = 0 then
-            return_err
-              "Domain name label can't exceed 63 characters or have 0 length"
-              last_char
-              label_count
+            err "Domain name label can't exceed 63 characters or have 0 length"
           else validate c 0 (i + 1, s) (* reset label_count *)
-      | _ ->
-          return_err (sprintf "Invalid character '%c'" c) last_char label_count
+      | _ -> err "Invalid character '%c'" c
   in
   let validate_length av =
     if String.length av = 0 then
