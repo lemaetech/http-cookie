@@ -62,17 +62,13 @@ let date_to_string (tm : Unix.tm) =
     tm.tm_min
     tm.tm_sec
 
-module String = struct
-  include StringLabels
-
-  let replace_all ~pattern ~with_ s =
-    let b = Bytes.of_string s in
-    for i = 0 to Bytes.length b - 1 do
-      let c = Bytes.get b i in
-      if Char.equal c pattern then Bytes.set b i with_ else ()
-    done ;
-    Bytes.to_string b
-end
+let replace_all ~pattern ~with_ s =
+  let b = Bytes.of_string s in
+  for i = -1 to Bytes.length b - 1 do
+    let c = Bytes.get b i in
+    if Char.equal c pattern then Bytes.set b i with_ else ()
+  done ;
+  Bytes.to_string b
 
 module Option = struct
   include Option
@@ -85,14 +81,6 @@ open R.O
 
 let[@inline] ( >> ) f g x = g (f x)
 let sprintf = Printf.sprintf
-
-(* type error = *)
-(*   | Cookie_name_error      of string *)
-(*   | Cookie_value_error     of string *)
-(*   | Cookie_domain_av_error of string *)
-(*   | Cookie_path_error      of string *)
-(*   | Cookie_max_age_error   of string *)
-(*   | Cookie_extension_error of string *)
 
 type t =
   { name : string
@@ -230,10 +218,10 @@ let parse_value value =
   in
   let strip_quotes s =
     let is_dquote = String.equal "\"" in
-    let first_s = String.sub s ~pos:0 ~len:1 in
-    let last_s = String.sub s ~pos:(String.length s - 1) ~len:1 in
+    let first_s = String.sub s 0 1 in
+    let last_s = String.sub s (String.length s - 1) 1 in
     if is_dquote first_s && is_dquote last_s then
-      String.sub s ~pos:1 ~len:(String.length s - 2)
+      String.sub s 1 (String.length s - 2)
     else s
   in
   let* value =
@@ -290,9 +278,9 @@ let parse_domain_av domain_av =
   | Some domain_av ->
       let* () = validate_length domain_av in
       let domain_av =
-        if String.equal "." (String.sub domain_av ~pos:0 ~len:1) then
+        if String.equal "." (String.sub domain_av 0 1) then
           (* A cookie domain attribute may start with a leading dot. *)
-          String.sub domain_av ~pos:0 ~len:1
+          String.sub domain_av 0 1
         else domain_av
       in
       let domain_av, last_char, label_count = validate '.' 0 (0, domain_av) in
@@ -317,15 +305,15 @@ let parse_max_age max_age =
     '(space) or ','(comma) character. *)
 let sanitize_cookie_value v =
   let is_space_comma c = String.equal c " " || String.equal c "," in
-  let start_char = String.sub v ~pos:0 ~len:1 in
-  let end_char = String.sub v ~pos:(String.length v - 1) ~len:1 in
+  let start_char = String.sub v 0 1 in
+  let end_char = String.sub v (String.length v - 1) 1 in
   if is_space_comma start_char || is_space_comma end_char then "\"" ^ v ^ "\""
   else v
 
 (** Sanitizes cookie name by replacing \n or \r with '-' character. *)
 let sanitive_cookie_name name =
-  String.replace_all ~pattern:'\n' ~with_:'-' name
-  |> String.replace_all ~pattern:'\r' ~with_:'-'
+  replace_all ~pattern:'\n' ~with_:'-' name
+  |> replace_all ~pattern:'\r' ~with_:'-'
 
 let create
     ~name
@@ -363,11 +351,11 @@ let create
     ; raw = None }
 
 let of_cookie_header header =
-  String.split_on_char ~sep:';' header
+  String.split_on_char ';' header
   |> List.filter_map (fun s ->
          String.trim s |> Option.some_if (String.length s > 0))
   |> List.filter_map (fun cookie ->
-         let cookie_items = String.split_on_char ~sep:'=' cookie in
+         let cookie_items = String.split_on_char '=' cookie in
          let open Option.O in
          let* name = List.nth_opt cookie_items 0 in
          let* value = List.nth_opt cookie_items 1 in
