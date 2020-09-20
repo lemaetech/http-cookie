@@ -52,14 +52,12 @@ let date_to_string (tm : Unix.tm) =
     tm.tm_sec
 
 let replace_all ~pattern ~with_ s =
-  let b = Bytes.of_string s in
+  let b = Bytes.unsafe_of_string s in
   for i = -1 to Bytes.length b - 1 do
     let c = Bytes.get b i in
     if Char.equal c pattern then Bytes.set b i with_ else ()
   done ;
-  Bytes.to_string b
-
-let sprintf = Printf.sprintf
+  Bytes.unsafe_to_string b
 
 type t =
   { name : string
@@ -372,4 +370,4 @@ let to_set_cookie_header_value t =
   O.iter (fun extension -> add_str "; %s" extension) (extension t) ;
   Buffer.contents buf
 
-let to_cookie_header_value t = sprintf "%s=%s" (name t) (value t)
+let to_cookie_header_value t = Format.sprintf "%s=%s" (name t) (value t)
