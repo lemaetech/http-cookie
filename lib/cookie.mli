@@ -34,7 +34,7 @@ val create :
   -> ?same_site:Same_site.t
   -> ?extension:string
   -> unit
-  -> (t, _) result
+  -> t
 (** [create ... ()] parse a cookie instance [t] from given value parameters. If
     the given values parses successfully, then [Ok t] is returned. If an error
     is encountered while parsing then an [Error err] is returned.
@@ -43,7 +43,9 @@ val create :
     in a ' '(space) or a ','(comma) character.
 
     [~sanitize_name] if true and [name] contains '\n' or '\r' character then it
-    is replaced by '-' character. *)
+    is replaced by '-' character.
+
+    @raise Cookie If any of the arguments fail validation. *)
 
 val compare : t -> t -> int
 
@@ -94,7 +96,7 @@ val extension : t -> string option
 (** [extension t] returns a cookie extension value. See k
     https://tools.ietf.org/html/rfc6265#section-4.1.1 *)
 
-val of_cookie_header : string -> (t, _) result list
+val of_cookie_header : string -> t list
 (** [of_cookie_header s] parses [s] - a string value which represents HTTP
     'Cookie' header value as defined in
     https://tools.ietf.org/html/rfc6265#section-4.2 and returns a list of

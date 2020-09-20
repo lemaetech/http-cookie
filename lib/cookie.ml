@@ -8,17 +8,6 @@
  * %%NAME%% %%VERSION%%
  *-------------------------------------------------------------------------*)
 
-module R = struct
-  include Result
-
-  module O = struct
-    let ( >>= ) = bind
-    let ( >>| ) r f = map f r
-    let ( let* ) = ( >>= )
-    let ( let+ ) = ( >>| )
-  end
-end
-
 exception Cookie of string
 
 (** [to_rfc1123 t] converts [t] to a string in a format as defined by RFC 1123. *)
@@ -70,9 +59,6 @@ let replace_all ~pattern ~with_ s =
   done ;
   Bytes.to_string b
 
-open R.O
-
-let[@inline] ( >> ) f g x = g (f x)
 let sprintf = Printf.sprintf
 
 type t =
@@ -110,18 +96,16 @@ let err fmt = Format.ksprintf (fun s -> raise (Cookie s)) fmt
    CTL(control characters) or ';' char. *)
 let parse_cookie_av attr_value err =
   let rec validate i av =
-    if i >= String.length av then R.ok av
+    if i >= String.length av then av
     else
       let c = av.[i] in
       if is_control_char c || Char.equal c ';' then err c
       else validate (i + 1) av
   in
   match attr_value with
-  | None -> R.ok None
-  | Some value when String.length value = 0 -> R.ok None
-  | Some value ->
-      let+ value = validate 0 value in
-      Some value
+  | None -> None
+  | Some value when String.length value = 0 -> None
+  | Some value -> Some (validate 0 value)
 
 let parse_path path =
   err "Cookie 'Path' attribute value contains invalid character '%c'"
@@ -162,7 +146,7 @@ let parse_name name =
     code >= 0 && code <= 127
   in
   let rec validate i name =
-    if i >= String.length name then R.ok name
+    if i >= String.length name then name
     else
       let c = name.[i] in
       match c with
@@ -173,11 +157,10 @@ let parse_name name =
           err "Invalid US-ASCII character '%c' found in name." c
       | _ -> validate (i + 1) name
   in
-  let* name =
-    if String.length name > 0 then R.ok name else err "0 length cookie name."
+  let name =
+    if String.length name > 0 then name else err "0 length cookie name."
   in
-  let+ name = validate 0 name in
-  name
+  validate 0 name
 
 (* Based on https://golang.org/src/net/http/cookie.go
  * https://tools.ietf.org/html/rfc6265#section-4.1.1
@@ -196,7 +179,7 @@ let parse_value value =
   let semi = Char.code ';' in
   let b_slash = Char.code '\\' in
   let rec validate i s =
-    if i >= String.length s then R.ok s
+    if i >= String.length s then s
     else
       let c = s.[i] in
       let code = Char.code c in
@@ -217,18 +200,17 @@ let parse_value value =
       String.sub s 1 (String.length s - 2)
     else s
   in
-  let* value =
-    if String.length value > 0 then R.ok value
+  let value =
+    if String.length value > 0 then value
     else err "Cookie value length must be > 0."
   in
-  let+ value = strip_quotes value |> validate 0 in
-  value
+  strip_quotes value |> validate 0
 
 (** See https://tools.ietf.org/html/rfc1034#section-3.5 and
     https://tools.ietf.org/html/rfc1123#section-2 *)
 let parse_domain_av domain_av =
   let rec validate last_char label_count (i, s) =
-    if i >= String.length s then (R.ok s, last_char, label_count)
+    if i >= String.length s then (s, last_char, label_count)
     else
       let label_count = label_count + 1 in
       let c = s.[i] in
@@ -254,22 +236,22 @@ let parse_domain_av domain_av =
       err "Domain attribute value length must be greater than 0"
     else if String.length av > 255 then
       err "Domain attribute value length must not exceed 255 characters"
-    else R.ok ()
+    else ()
   in
   let validate_last_char last_char =
     if Char.equal '-' last_char then
       err "Domain attribute value's last character is not allowed to be '-'"
-    else R.ok ()
+    else ()
   in
   let validate_label_length label_count =
     if label_count > 63 then
       err "Domain attribute value label length can't exceed 63 characters"
-    else R.ok ()
+    else ()
   in
   match domain_av with
-  | None           -> R.ok None
+  | None           -> None
   | Some domain_av ->
-      let* () = validate_length domain_av in
+      let () = validate_length domain_av in
       let domain_av =
         if String.equal "." (String.sub domain_av 0 1) then
           (* A cookie domain attribute may start with a leading dot. *)
@@ -277,18 +259,18 @@ let parse_domain_av domain_av =
         else domain_av
       in
       let domain_av, last_char, label_count = validate '.' 0 (0, domain_av) in
-      let* domain_av = domain_av in
-      let* () = validate_last_char last_char in
-      let+ () = validate_label_length label_count in
+      let domain_av = domain_av in
+      let () = validate_last_char last_char in
+      let () = validate_label_length label_count in
       Some domain_av
 
 let parse_max_age max_age =
   match max_age with
-  | None    -> R.ok None
+  | None    -> None
   | Some ma ->
       if ma <= 0 then
         err "Cookies 'Max-Age' attribute is less than or equal to 0"
-      else (Option.some >> R.ok) ma
+      else Option.some ma
 
 (* -------------------------------------------------------------------------
  * Sanitize functions
@@ -322,26 +304,25 @@ let create
     ?same_site
     ?extension
     () =
-  let* name = parse_name name in
+  let name = parse_name name in
   let name = if sanitize_name then sanitive_cookie_name name else name in
-  let* value = parse_value value in
+  let value = parse_value value in
   let value = if sanitize_value then sanitize_cookie_value value else value in
-  let* domain = parse_domain_av domain in
-  let* path = parse_path path in
-  let* max_age = parse_max_age max_age in
-  let* extension = parse_extension extension in
-  R.ok
-    { name
-    ; value
-    ; path
-    ; domain
-    ; expires
-    ; max_age
-    ; secure
-    ; http_only
-    ; same_site
-    ; extension
-    ; raw = None }
+  let domain = parse_domain_av domain in
+  let path = parse_path path in
+  let max_age = parse_max_age max_age in
+  let extension = parse_extension extension in
+  { name
+  ; value
+  ; path
+  ; domain
+  ; expires
+  ; max_age
+  ; secure
+  ; http_only
+  ; same_site
+  ; extension
+  ; raw = None }
 
 let of_cookie_header header =
   String.split_on_char ';' header
@@ -359,10 +340,10 @@ let of_cookie_header header =
          | Invalid_argument _ ->
              None)
   |> List.map (fun (raw, name, value) ->
-         let* cookie =
+         let cookie =
            create ~name ~value ~sanitize_name:false ~sanitize_value:false ()
          in
-         R.ok {cookie with raw = Some raw})
+         {cookie with raw = Some raw})
 
 (*---------------------------------------------------------------------------
  * Cookie.t string conversion functions
