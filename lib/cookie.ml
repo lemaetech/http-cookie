@@ -70,10 +70,6 @@ let replace_all ~pattern ~with_ s =
   done ;
   Bytes.to_string b
 
-module Option = struct
-  include Option module O = struct let ( let* ) = bind end
-end
-
 open R.O
 
 let[@inline] ( >> ) f g x = g (f x)
@@ -353,11 +349,15 @@ let of_cookie_header header =
          let s = String.trim s in
          if String.length s > 0 then Some s else None)
   |> List.filter_map (fun cookie ->
-         let cookie_items = String.split_on_char '=' cookie in
-         let open Option.O in
-         let* name = List.nth_opt cookie_items 0 in
-         let* value = List.nth_opt cookie_items 1 in
-         Some (cookie, name, value))
+         try
+           let cookie_items = String.split_on_char '=' cookie in
+           let name = List.nth cookie_items 0
+           and value = List.nth cookie_items 1 in
+           Some (cookie, name, value)
+         with
+         | Failure _
+         | Invalid_argument _ ->
+             None)
   |> List.map (fun (raw, name, value) ->
          let* cookie =
            create ~name ~value ~sanitize_name:false ~sanitize_value:false ()
