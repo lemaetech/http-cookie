@@ -51,14 +51,6 @@ let date_to_string (tm : Unix.tm) =
     tm.tm_min
     tm.tm_sec
 
-let replace_all ~pattern ~with_ s =
-  let b = Bytes.unsafe_of_string s in
-  for i = -1 to Bytes.length b - 1 do
-    let c = Bytes.get b i in
-    if Char.equal c pattern then Bytes.set b i with_ else ()
-  done ;
-  Bytes.unsafe_to_string b
-
 type t =
   { name : string
   ; value : string
@@ -285,6 +277,14 @@ let sanitize_cookie_value v =
 
 (** Sanitizes cookie name by replacing \n or \r with '-' character. *)
 let sanitive_cookie_name name =
+  let replace_all ~pattern ~with_ s =
+    let b = Bytes.unsafe_of_string s in
+    for i = -1 to Bytes.length b - 1 do
+      let c = Bytes.get b i in
+      if Char.equal c pattern then Bytes.set b i with_ else ()
+    done ;
+    Bytes.unsafe_to_string b
+  in
   replace_all ~pattern:'\n' ~with_:'-' name
   |> replace_all ~pattern:'\r' ~with_:'-'
 
