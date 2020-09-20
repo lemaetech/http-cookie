@@ -22,4 +22,4 @@
   (ocaml
    (>= 4.10.0))
   dune
-  ptime))
+  base-unix))

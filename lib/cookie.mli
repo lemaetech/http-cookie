@@ -39,7 +39,7 @@ val create :
   -> ?sanitize_value:bool
   -> ?path:string
   -> ?domain:string
-  -> ?expires:Ptime.t
+  -> ?expires:Unix.tm
   -> ?max_age:int
   -> ?secure:bool
   -> ?http_only:bool
@@ -76,7 +76,7 @@ val domain : t -> string option
 (** [domain t] returns cookie domain attribute. See
     https://tools.ietf.org/html/rfc6265#section-4.1.2.3 *)
 
-val expires : t -> Ptime.t option
+val expires : t -> Unix.tm option
 (** [expires t] returns a coookie expires attribute. See
     https://tools.ietf.org/html/rfc6265#section-4.1.2.1.
 

@@ -19,50 +19,48 @@ module R = struct
   end
 end
 
-module Ptime = struct
-  include Ptime
+exception Cookie of string
 
-  (** [to_rfc1123 t] converts [t] to a string in a format as defined by RFC
-      1123. *)
-  let to_rfc1123 t =
-    let weekday =
-      match Ptime.weekday ~tz_offset_s:0 t with
-      | `Mon -> "Mon"
-      | `Tue -> "Tue"
-      | `Wed -> "Wed"
-      | `Thu -> "Thu"
-      | `Fri -> "Fri"
-      | `Sat -> "Sat"
-      | `Sun -> "Sun"
-    in
-    let month = function
-      | 1  -> "Jan"
-      | 2  -> "Feb"
-      | 3  -> "Mar"
-      | 4  -> "Apr"
-      | 5  -> "May"
-      | 6  -> "Jun"
-      | 7  -> "Jul"
-      | 8  -> "Aug"
-      | 9  -> "Sep"
-      | 10 -> "Oct"
-      | 11 -> "Nov"
-      | 12 -> "Dec"
-      | _  -> assert false
-    in
-    let (y, m, d), ((hh, min, sec), _tz) =
-      Ptime.to_date_time ~tz_offset_s:0 t
-    in
-    Printf.sprintf
-      "%s, %02d %s %04d %02d:%02d:%02d GMT"
-      weekday
-      d
-      (month m)
-      y
-      hh
-      min
-      sec
-end
+(** [to_rfc1123 t] converts [t] to a string in a format as defined by RFC 1123. *)
+let date_to_string (tm : Unix.tm) =
+  let weekday =
+    match tm.tm_wday with
+    | 0  -> "Sun"
+    | 1  -> "Mon"
+    | 2  -> "Tue"
+    | 3  -> "Wed"
+    | 4  -> "Thu"
+    | 5  -> "Fri"
+    | 6  -> "Sat"
+    | 7  -> "Sun"
+    | wd ->
+        raise (Cookie (Format.sprintf "Invalid date time. weekday is %d" wd))
+  in
+  let month =
+    match tm.tm_mon with
+    | 1  -> "Jan"
+    | 2  -> "Feb"
+    | 3  -> "Mar"
+    | 4  -> "Apr"
+    | 5  -> "May"
+    | 6  -> "Jun"
+    | 7  -> "Jul"
+    | 8  -> "Aug"
+    | 9  -> "Sep"
+    | 10 -> "Oct"
+    | 11 -> "Nov"
+    | 12 -> "Dec"
+    | m  -> raise (Cookie (Format.sprintf "Invalid date time. month is %d" m))
+  in
+  Printf.sprintf
+    "%s, %02d %s %04d %02d:%02d:%02d GMT"
+    weekday
+    tm.tm_mday
+    month
+    tm.tm_year
+    tm.tm_hour
+    tm.tm_min
+    tm.tm_sec
 
 module String = struct
   include StringLabels
@@ -108,7 +106,7 @@ type t =
   ; value : string
   ; path : string option
   ; domain : string option
-  ; expires : Ptime.t option
+  ; expires : Unix.tm option
   ; max_age : int option
   ; secure : bool option
   ; http_only : bool option
@@ -415,7 +413,7 @@ let to_set_cookie_header_value t =
   O.iter (fun path -> add_str "; Path=%s" path) (path t) ;
   O.iter (fun d -> add_str "; Domain=%s" d) (domain t) ;
   O.iter
-    (fun expires -> add_str "; Expires=%s" @@ Ptime.to_rfc1123 expires)
+    (fun expires -> add_str "; Expires=%s" @@ date_to_string expires)
     (expires t) ;
   O.iter
     (fun max_age -> if max_age > 0 then add_str "; Max-Age=%d" max_age)
