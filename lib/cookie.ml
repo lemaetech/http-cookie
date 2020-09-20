@@ -71,10 +71,7 @@ let replace_all ~pattern ~with_ s =
   Bytes.to_string b
 
 module Option = struct
-  include Option
-  module O = struct let ( let* ) = bind end
-
-  let some_if cond a = if cond then Some a else None
+  include Option module O = struct let ( let* ) = bind end
 end
 
 open R.O
@@ -353,7 +350,8 @@ let create
 let of_cookie_header header =
   String.split_on_char ';' header
   |> List.filter_map (fun s ->
-         String.trim s |> Option.some_if (String.length s > 0))
+         let s = String.trim s in
+         if String.length s > 0 then Some s else None)
   |> List.filter_map (fun cookie ->
          let cookie_items = String.split_on_char '=' cookie in
          let open Option.O in
