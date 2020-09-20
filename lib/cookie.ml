@@ -94,13 +94,6 @@ type error =
   | Cookie_max_age_error   of string
   | Cookie_extension_error of string
 
-let cookie_name_error s = Cookie_name_error s
-let cookie_value_error s = Cookie_value_error s
-let cookie_domain_av_error s = Cookie_domain_av_error s
-let cookie_path_error s = Cookie_path_error s
-let cookie_max_age_error s = Cookie_max_age_error s
-let cookie_extension_error s = Cookie_extension_error s
-
 type t =
   { name : string
   ; value : string
@@ -130,7 +123,7 @@ let is_control_char c =
   let code = Char.code c in
   (code >= 0 && code <= 31) || code = 127
 
-let err f fmt = Format.ksprintf (f >> R.error) fmt
+let err fmt = Format.ksprintf (fun s -> raise (Cookie s)) fmt
 
 (* Parses cookie attribute value. Cookie attribute values shouldn't contain any
    CTL(control characters) or ';' char. *)
@@ -150,15 +143,11 @@ let parse_cookie_av attr_value err =
       Some value
 
 let parse_path path =
-  err
-    cookie_path_error
-    "Cookie 'Path' attribute value contains invalid character '%c'"
+  err "Cookie 'Path' attribute value contains invalid character '%c'"
   |> parse_cookie_av path
 
 let parse_extension extension =
-  err
-    cookie_extension_error
-    "Cookie extension value contains invalid character '%c'"
+  err "Cookie extension value contains invalid character '%c'"
   |> parse_cookie_av extension
 
 (* Parses a given cookie into a cookie_name. Valid cookie name/token as defined
@@ -191,7 +180,6 @@ let parse_name name =
     let code = Char.code c in
     code >= 0 && code <= 127
   in
-  let err fmt = err cookie_name_error fmt in
   let rec validate i name =
     if i >= String.length name then R.ok name
     else
@@ -226,7 +214,6 @@ let parse_value value =
   let dquote = Char.code '"' in
   let semi = Char.code ';' in
   let b_slash = Char.code '\\' in
-  let err fmt = err cookie_value_error fmt in
   let rec validate i s =
     if i >= String.length s then R.ok s
     else
@@ -288,7 +275,6 @@ let parse_domain_av domain_av =
       | _ ->
           return_err (sprintf "Invalid character '%c'" c) last_char label_count
   in
-  let err = err cookie_domain_av_error in
   let validate_length av =
     if String.length av = 0 then
       err "Domain attribute value length must be greater than 0"
@@ -327,9 +313,7 @@ let parse_max_age max_age =
   | None    -> R.ok None
   | Some ma ->
       if ma <= 0 then
-        err
-          cookie_max_age_error
-          "Cookies 'Max-Age' attribute is less than or equal to 0"
+        err "Cookies 'Max-Age' attribute is less than or equal to 0"
       else (Option.some >> R.ok) ma
 
 (* -------------------------------------------------------------------------

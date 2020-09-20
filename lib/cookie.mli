@@ -32,6 +32,8 @@ type error =
   | Cookie_extension_error of string
       (** Denotes 'cookie extension' attribute value validation errors. *)
 
+exception Cookie of string
+
 val create :
      name:string
   -> value:string
