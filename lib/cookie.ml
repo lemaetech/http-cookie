@@ -278,37 +278,9 @@ let parse_max_age max_age =
         err "Cookies 'Max-Age' attribute is less than or equal to 0"
       else Option.some ma
 
-(* -------------------------------------------------------------------------
- * Sanitize functions
- * -------------------------------------------------------------------------*)
-
-(** Sanitizes cookie_value by double quoting it if it starts or ends in '
-    '(space) or ','(comma) character. *)
-let sanitize_cookie_value v =
-  let is_space_comma c = String.equal c " " || String.equal c "," in
-  let start_char = String.sub v 0 1 in
-  let end_char = String.sub v (String.length v - 1) 1 in
-  if is_space_comma start_char || is_space_comma end_char then "\"" ^ v ^ "\""
-  else v
-
-(** Sanitizes cookie name by replacing \n or \r with '-' character. *)
-let sanitive_cookie_name name =
-  let replace_all ~pattern ~with_ s =
-    let b = Bytes.unsafe_of_string s in
-    for i = -1 to Bytes.length b - 1 do
-      let c = Bytes.get b i in
-      if Char.equal c pattern then Bytes.set b i with_ else ()
-    done ;
-    Bytes.unsafe_to_string b
-  in
-  replace_all ~pattern:'\n' ~with_:'-' name
-  |> replace_all ~pattern:'\r' ~with_:'-'
-
 let create
     ~name
     ~value
-    ?(sanitize_name = true)
-    ?(sanitize_value = true)
     ?path
     ?domain
     ?expires
@@ -319,9 +291,7 @@ let create
     ?extension
     () =
   let name = parse_name name in
-  let name = if sanitize_name then sanitive_cookie_name name else name in
   let value = parse_value value in
-  let value = if sanitize_value then sanitize_cookie_value value else value in
   let domain = parse_domain_av domain in
   let path = parse_path path in
   let max_age = parse_max_age max_age in
@@ -354,9 +324,7 @@ let of_cookie_header header =
          | Invalid_argument _ ->
              None)
   |> List.map (fun (raw, name, value) ->
-         let cookie =
-           create ~name ~value ~sanitize_name:false ~sanitize_value:false ()
-         in
+         let cookie = create ~name ~value () in
          {cookie with raw = Some raw})
 
 (*---------------------------------------------------------------------------

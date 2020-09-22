@@ -37,8 +37,6 @@ exception Cookie of string
 val create :
      name:string
   -> value:string
-  -> ?sanitize_name:bool
-  -> ?sanitize_value:bool
   -> ?path:string
   -> ?domain:string
   -> ?expires:Unix.tm
