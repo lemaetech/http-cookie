@@ -238,9 +238,7 @@ let parse_domain_av domain_av =
       | _ -> err "Invalid character '%c'" c
   in
   let validate_length av =
-    if String.length av = 0 then
-      err "Domain attribute value length must be greater than 0"
-    else if String.length av > 255 then
+    if String.length av > 255 then
       err "Domain attribute value length must not exceed 255 characters"
     else ()
   in
@@ -255,7 +253,8 @@ let parse_domain_av domain_av =
     else ()
   in
   match domain_av with
-  | None           -> None
+  | None -> None
+  | Some domain_av when String.length domain_av = 0 -> None
   | Some domain_av ->
       let () = validate_length domain_av in
       let domain_av =
