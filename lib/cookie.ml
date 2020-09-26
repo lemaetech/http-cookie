@@ -62,7 +62,7 @@ let date_to_string (tm : Unix.tm) =
     weekday
     tm.tm_mday
     month
-    tm.tm_year
+    (1900 + tm.tm_year)
     tm.tm_hour
     tm.tm_min
     tm.tm_sec
