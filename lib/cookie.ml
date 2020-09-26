@@ -77,8 +77,7 @@ type t =
   ; secure : bool option
   ; http_only : bool option
   ; same_site : Same_site.t option
-  ; extension : string option
-  ; raw : string option (* Raw cookie string *) }
+  ; extension : string option }
 
 let compare {name = name1; _} {name = name2; _} = String.compare name1 name2
 let name c = c.name
@@ -304,8 +303,7 @@ let create
   ; secure
   ; http_only
   ; same_site
-  ; extension
-  ; raw = None }
+  ; extension }
 
 let of_cookie_header header =
   String.split_on_char ';' header
@@ -317,18 +315,11 @@ let of_cookie_header header =
            let cookie_items = String.split_on_char '=' cookie in
            let name = List.nth cookie_items 0
            and value = List.nth cookie_items 1 in
-           Some (cookie, name, value)
+           Some (create ~name ~value ())
          with
          | Failure _
          | Invalid_argument _ ->
              None)
-  |> List.map (fun (raw, name, value) ->
-         let cookie = create ~name ~value () in
-         {cookie with raw = Some raw})
-
-(*---------------------------------------------------------------------------
- * Cookie.t string conversion functions
- *--------------------------------------------------------------------------*)
 
 let to_set_cookie_header_value t =
   let module O = Option in
