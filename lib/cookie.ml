@@ -8,11 +8,7 @@
  * %%NAME%% %%VERSION%%
  *-------------------------------------------------------------------------*)
 module Same_site = struct
-  type t =
-    | Default
-    | None
-    | Lax
-    | Strict
+  type t = Default | None | Lax | Strict
 
   let compare (t1 : t) (t2 : t) = compare t1 t2
   let equal (t1 : t) (t2 : t) = compare t1 t2 = 0
@@ -38,8 +34,7 @@ let date_to_string (tm : Unix.tm) =
     | 5  -> "Fri"
     | 6  -> "Sat"
     | 7  -> "Sun"
-    | wd ->
-        raise (Cookie (Format.sprintf "Invalid date time. weekday is %d" wd))
+    | wd -> raise (Cookie (Format.sprintf "Invalid date time. weekday is %d" wd))
   in
   let month =
     match tm.tm_mon with
@@ -57,29 +52,22 @@ let date_to_string (tm : Unix.tm) =
     | 11 -> "Dec"
     | m  -> raise (Cookie (Format.sprintf "Invalid date time. month is %d" m))
   in
-  Printf.sprintf
-    "%s, %02d %s %04d %02d:%02d:%02d GMT"
-    weekday
-    tm.tm_mday
-    month
-    (1900 + tm.tm_year)
-    tm.tm_hour
-    tm.tm_min
-    tm.tm_sec
+  Printf.sprintf "%s, %02d %s %04d %02d:%02d:%02d GMT" weekday tm.tm_mday month
+    (1900 + tm.tm_year) tm.tm_hour tm.tm_min tm.tm_sec
 
 type t =
-  { name : string
-  ; value : string
-  ; path : string option
-  ; domain : string option
-  ; expires : Unix.tm option
-  ; max_age : int option
-  ; secure : bool option
-  ; http_only : bool option
-  ; same_site : Same_site.t option
-  ; extension : string option }
+  { name: string
+  ; value: string
+  ; path: string option
+  ; domain: string option
+  ; expires: Unix.tm option
+  ; max_age: int option
+  ; secure: bool option
+  ; http_only: bool option
+  ; same_site: Same_site.t option
+  ; extension: string option }
 
-let compare {name = name1; _} {name = name2; _} = String.compare name1 name2
+let compare {name= name1; _} {name= name2; _} = String.compare name1 name2
 let name c = c.name
 let value c = c.value
 let path c = c.path
@@ -105,8 +93,7 @@ let parse_cookie_av attr_value err =
     else
       let c = av.[i] in
       if is_control_char c || Char.equal c ';' then err c
-      else validate (i + 1) av
-  in
+      else validate (i + 1) av in
   match attr_value with
   | None -> None
   | Some value when String.length value = 0 -> None
@@ -124,32 +111,14 @@ let parse_extension extension =
    in https://tools.ietf.org/html/rfc2616#section-2.2 *)
 let parse_name name =
   let is_separator = function
-    | '('
-    | ')'
-    | '<'
-    | '>'
-    | '@'
-    | ','
-    | ';'
-    | ':'
-    | '\\'
-    | '"'
-    | '/'
-    | '['
-    | ']'
-    | '?'
-    | '='
-    | '{'
-    | '}'
-    | ' ' ->
+    | '(' | ')' | '<' | '>' | '@' | ',' | ';' | ':' | '\\' | '"' | '/' | '['
+     |']' | '?' | '=' | '{' | '}' | ' ' ->
         true
     | c when Char.code c = 9 -> true
-    | _ -> false
-  in
+    | _ -> false in
   let is_us_ascii_char c =
     let code = Char.code c in
-    code >= 0 && code <= 127
-  in
+    code >= 0 && code <= 127 in
   let rec validate i name =
     if i >= String.length name then name
     else
@@ -160,11 +129,9 @@ let parse_name name =
       | c when is_separator c -> err "Separator character '%c' found in name." c
       | c when not (is_us_ascii_char c) ->
           err "Invalid US-ASCII character '%c' found in name." c
-      | _ -> validate (i + 1) name
-  in
+      | _ -> validate (i + 1) name in
   let name =
-    if String.length name > 0 then name else err "0 length cookie name."
-  in
+    if String.length name > 0 then name else err "0 length cookie name." in
   validate 0 name
 
 (* Based on https://golang.org/src/net/http/cookie.go
@@ -195,20 +162,17 @@ let parse_value value =
         && code <> semi
         && code <> b_slash
       then validate (i + 1) s
-      else err "Invalid char '%c' found in cookie value" c
-  in
+      else err "Invalid char '%c' found in cookie value" c in
   let strip_quotes s =
     let is_dquote = String.equal "\"" in
     let first_s = String.sub s 0 1 in
     let last_s = String.sub s (String.length s - 1) 1 in
     if is_dquote first_s && is_dquote last_s then
       String.sub s 1 (String.length s - 2)
-    else s
-  in
+    else s in
   let value =
     if String.length value > 0 then value
-    else err "Cookie value length must be > 0."
-  in
+    else err "Cookie value length must be > 0." in
   strip_quotes value |> validate 0
 
 (** See https://tools.ietf.org/html/rfc1034#section-3.5 and
@@ -220,10 +184,7 @@ let parse_domain_av domain_av =
       let label_count = label_count + 1 in
       let c = s.[i] in
       match c with
-      | 'a' .. 'z'
-      | 'A' .. 'Z'
-      | '0' .. '9' ->
-          validate c label_count (i + 1, s)
+      | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' -> validate c label_count (i + 1, s)
       | '-' ->
           if Char.equal last_char '.' then
             err "Character before '-' cannot be '.'"
@@ -234,23 +195,19 @@ let parse_domain_av domain_av =
           else if label_count > 63 || label_count = 0 then
             err "Domain name label can't exceed 63 characters or have 0 length"
           else validate c 0 (i + 1, s) (* reset label_count *)
-      | _ -> err "Invalid character '%c'" c
-  in
+      | _ -> err "Invalid character '%c'" c in
   let validate_length av =
     if String.length av > 255 then
       err "Domain attribute value length must not exceed 255 characters"
-    else ()
-  in
+    else () in
   let validate_last_char last_char =
     if Char.equal '-' last_char then
       err "Domain attribute value's last character is not allowed to be '-'"
-    else ()
-  in
+    else () in
   let validate_label_length label_count =
     if label_count > 63 then
       err "Domain attribute value label length can't exceed 63 characters"
-    else ()
-  in
+    else () in
   match domain_av with
   | None -> None
   | Some domain_av when String.length domain_av = 0 -> None
@@ -260,8 +217,7 @@ let parse_domain_av domain_av =
         if String.equal "." (String.sub domain_av 0 1) then
           (* A cookie domain attribute may start with a leading dot. *)
           String.sub domain_av 0 1
-        else domain_av
-      in
+        else domain_av in
       let domain_av, last_char, label_count = validate '.' 0 (0, domain_av) in
       let domain_av = domain_av in
       let () = validate_last_char last_char in
@@ -309,17 +265,14 @@ let of_cookie_header header =
   String.split_on_char ';' header
   |> List.filter_map (fun s ->
          let s = String.trim s in
-         if String.length s > 0 then Some s else None)
+         if String.length s > 0 then Some s else None )
   |> List.filter_map (fun cookie ->
          try
            let cookie_items = String.split_on_char '=' cookie in
            let name = List.nth cookie_items 0
            and value = List.nth cookie_items 1 in
            Some (create ~name ~value ())
-         with
-         | Failure _
-         | Invalid_argument _ ->
-             None)
+         with Failure _ | Invalid_argument _ -> None )
 
 let to_set_cookie_header_value t =
   let module O = Option in
@@ -339,7 +292,7 @@ let to_set_cookie_header_value t =
   O.iter
     (fun same_site ->
       if Same_site.(equal Default same_site) then add_str "; SameSite"
-      else add_str "; SameSite=%s" (Same_site.to_string same_site))
+      else add_str "; SameSite=%s" (Same_site.to_string same_site) )
     t.same_site ;
   O.iter (fun extension -> add_str "; %s" extension) (extension t) ;
   Buffer.contents buf

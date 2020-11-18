@@ -17,11 +17,7 @@
 module Same_site : sig
   (** Represents 'Same-site' cookie attribute. See
       https://tools.ietf.org/html/draft-ietf-httpbis-cookie-same-site-00. *)
-  type t =
-    | Default
-    | None
-    | Lax
-    | Strict
+  type t = Default | None | Lax | Strict
 
   val equal : t -> t -> bool
   val compare : t -> t -> int
