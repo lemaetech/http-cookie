@@ -1,23 +1,21 @@
-Cookies
-======= 
+# Cookies
 
-Cookies is a comprehensive HTTP cookies library for OCaml. It provides functionality to both consume and produce HTTP RFC 6265 [https://tools.ietf.org/html/rfc6265] compliant cookies.
+A comprehensive and standards compliant HTTP cookies library for ocaml.
 
-Requirements
-------------
-Reparse requires ocaml version 4.10.0.
+HTTP cookies are serialized as follows:
 
-Installation
------------
+- In a `Cookie` header in a HTTP request
+- In a `Set-Cookie` header in a HTTP response.
+
+The library supports consuming and creating HTTP cookies in both requests
+and responses.
+
+The standard implemented by the library is [RFC 6265](https://tools.ietf.org/html/rfc6265).
+
+[API Documentation](https://lemaetech.co.uk/http-cookies/)
+
+## Installation
+
 ```sh
-$ opam install cookies
+$ opam install http-cookies
 ```
-
-API documentation
------------------
-
-```sh
-$ opam install odig 
-$ odig doc cookies 
-```
-

@@ -233,8 +233,6 @@ let parse_max_age max_age =
       else Option.some ma
 
 let create
-    ~name
-    ~value
     ?path
     ?domain
     ?expires
@@ -243,7 +241,8 @@ let create
     ?http_only
     ?same_site
     ?extension
-    () =
+    name
+    ~value =
   let name = parse_name name in
   let value = parse_value value in
   let domain = parse_domain_av domain in
@@ -271,7 +270,7 @@ let of_cookie_header header =
            let cookie_items = String.split_on_char '=' cookie in
            let name = List.nth cookie_items 0
            and value = List.nth cookie_items 1 in
-           Some (create ~name ~value ())
+           Some (create name ~value)
          with Failure _ | Invalid_argument _ -> None )
 
 let to_set_cookie_header_value t =

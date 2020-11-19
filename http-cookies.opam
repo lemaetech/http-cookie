@@ -8,12 +8,13 @@ license: "MPL-2.0"
 homepage: "https://github.com/lemaetech/cookies"
 bug-reports: "https://github.com/lemaetech/cookies/issues"
 depends: [
+  "dune" {>= "2.7"}
   "ocaml" {>= "4.10.0"}
-  "dune" {>= "2.6"}
   "base-unix"
+  "odoc" {with-doc}
 ]
 build: [
-  ["dune" "subst"] {pinned}
+  ["dune" "subst"] {dev}
   [
     "dune"
     "build"

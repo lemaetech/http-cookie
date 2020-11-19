@@ -1,4 +1,4 @@
-(lang dune 2.6)
+(lang dune 2.7)
 
 (name http-cookies)
 
@@ -21,5 +21,4 @@
  (depends
   (ocaml
    (>= 4.10.0))
-  dune
   base-unix))
