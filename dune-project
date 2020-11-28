@@ -1,11 +1,11 @@
 (lang dune 2.7)
 
-(name http-cookies)
+(name http-cookie)
 
 (generate_opam_files true)
 
 (source
- (github lemaetech/cookies))
+ (github lemaetech/http-cookie))
 
 (license MPL-2.0)
 
@@ -14,10 +14,9 @@
 (maintainers "Bikal Lem")
 
 (package
- (name http-cookies)
- (synopsis "HTTP cookies library for OCaml")
- (description
-   "OCaml library to manipulate HTTP cookies. Adheres to RFC 6265.")
+ (name http-cookie)
+ (synopsis "HTTP cookie library for OCaml")
+ (description "OCaml library to manipulate HTTP cookie. Adheres to RFC 6265.")
  (depends
   (ocaml
    (>= 4.10.0))

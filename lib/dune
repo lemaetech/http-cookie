@@ -1,8 +1,0 @@
-(library
- (name http_cookies)
- (public_name http-cookies)
- (libraries unix))
-
-(documentation
- (package http-cookies)
- (mld_files index))

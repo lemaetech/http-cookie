@@ -10,16 +10,16 @@
 
 (** A comprehensive and standards compliant HTTP cookies library for ocaml.
 
-    HTTP cookies are serialized as follows:
+    HTTP cookie is serialized as follows:
 
     - In a [Cookie] header in a HTTP request
     - In a [Set-Cookie] header in a HTTP response.
 
-    The library supports consuming and creating HTTP cookies in both requests
-    and responses.
+    The library supports consuming and creating HTTP cookie in both requests and
+    responses.
 
-    The standard implemented by the library is
-    {{:https://tools.ietf.org/html/rfc6265} RFC 6265}. *)
+    The standard implemented by the library is {{:https://tools.ietf.org/html/rfc6265} RFC
+    6265}. *)
 
 (** {1 Types} *)
 
@@ -45,9 +45,9 @@ exception Cookie of string
 
 (** {1 Constructors} *)
 
-(** [create ~path ~domain ~expires ~max_age ~secure ~http_only ~same_site ~extension name ~value]
-    returns a cookie instance {!type:t} with cookie name [name] and value
-    [value] along with the given attributes.
+(** [create ~path ~domain ~expires ~max_age ~secure ~http_only ~same_site ~extension name
+    ~value] returns a cookie instance {!type:t} with cookie name [name] and value [value]
+    along with the given attributes.
 
     @raise Cookie if any of the cookie attributes fail validation. *)
 val create
@@ -63,20 +63,19 @@ val create
   -> value:string
   -> t
 
-(** [of_cookie_header s] parses [s] - a string value which represents HTTP
-    [Cookie] header value as defined in
-    {:https://tools.ietf.org/html/rfc6265#section-4.2} and returns a list of
-    [Cookie]s.
+(** [of_cookie_header s] parses [s] - a string value which represents HTTP [Cookie] header
+    value as defined in {:https://tools.ietf.org/html/rfc6265#section-4.2} and returns a
+    list of [Cookie]s.
 
     {4 Examples}
 
     This returns two cookies with cookie names [SID] and [lang-en].
 
-    {[ Cookie.of_cookie_header "SID=31d4d96e407aad42; lang=en-US" ]} *)
+    {[ Http_cookie.of_cookie_header "SID=31d4d96e407aad42; lang=en-US" ]} *)
 val of_cookie_header : string -> t list
 
-(** [to_set_header c] serializes cookie [c] into a string which can be encoded
-    as value for HTTP [Set-Cookie] header.
+(** [to_set_header c] serializes cookie [c] into a string which can be encoded as value
+    for HTTP [Set-Cookie] header.
 
     The datetime format for [expires] attribute is specified in
     {{:https://tools.ietf.org/html/rfc2616#section-3.3.1} RFC 2616}
@@ -88,8 +87,8 @@ SID=31d4d96e407aad42; Path=/; Secure; HttpOnly; Expires=Sun, 06 Nov 1994 08:49:3
     v} *)
 val to_set_cookie_header_value : t -> string
 
-(** [to_cookie_header c] serializes [c] into a string which can be encoded as
-    value for HTTP [Cookie] header.
+(** [to_cookie_header c] serializes [c] into a string which can be encoded as value for
+    HTTP [Cookie] header.
 
     Example of a string returned by the function.
 
@@ -144,8 +143,7 @@ val http_only : t -> bool option
 
 (** [same_site t] returns a same_site attribute.
 
-    See {{:https://tools.ietf.org/html/draft-ietf-httpbis-cookie-same-site-00}
-    same-site} *)
+    See {{:https://tools.ietf.org/html/draft-ietf-httpbis-cookie-same-site-00} same-site} *)
 val same_site : t -> Same_site.t option
 
 (** [extension t] returns a cookie extension value.
@@ -155,7 +153,6 @@ val extension : t -> string option
 
 (** {1 Compare} *)
 
-(** [compare c1 c2] returns [0] if [c1] and [c2] are equal, a positive integer
-    if [c1] is greater than [c2] and a negative integer if [c1] is less than
-    [c2] *)
+(** [compare c1 c2] returns [0] if [c1] and [c2] are equal, a positive integer if [c1] is
+    greater than [c2] and a negative integer if [c1] is less than [c2] *)
 val compare : t -> t -> int

@@ -2,4 +2,4 @@
 
 {1 Modules}
 
-{!module:Http_cookies.Cookie}
+{!module:Http_cookie}

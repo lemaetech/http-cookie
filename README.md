@@ -17,7 +17,7 @@ The standard implemented by the library is [RFC 6265](https://tools.ietf.org/htm
 ## Installation
 
 ```sh
-$ opam install http-cookies
+$ opam install http-cookie
 ```
 
 ## Usage
@@ -25,12 +25,12 @@ $ opam install http-cookies
 Create a cookie,
 
 ```ocaml
-Http_cookies.Cookie.create "SID" "23432324"
+Http_cookie.create "SID" "23432324"
 ```
 
 Serialize cookie to a HTTP `Set-Cookie` header value,
 
 ```ocaml
-let s = Http_cookies.Cookie.to_set_cookie_header_value c in
+let s = Http_cookie.to_set_cookie_header_value c in
 s = "SID=31d4d96e407aad42; Path=/; Secure; HttpOnly; Expires=Sun, 06 Nov 1994 08:49:37 GMT"
 ```
