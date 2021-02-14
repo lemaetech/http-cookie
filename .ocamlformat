@@ -1,2 +1,9 @@
-profile = janestreet
+profile = compact 
 parse-docstrings = true
+align-cases = true
+align-constructors-decl = true
+align-variants-decl = true
+break-fun-decl=fit-or-vertical
+break-fun-sig=fit-or-vertical
+break-separators=before
+break-sequences
