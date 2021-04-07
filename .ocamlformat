@@ -1,9 +1,21 @@
-profile = compact 
-parse-docstrings = true
-align-cases = true
-align-constructors-decl = true
-align-variants-decl = true
-break-fun-decl=fit-or-vertical
-break-fun-sig=fit-or-vertical
+profile=conventional
+break-infix-before-func
+break-infix=fit-or-vertical
 break-separators=before
-break-sequences
+dock-collection-brackets=false
+break-sequences=true
+doc-comments=before
+field-space=loose
+let-and=sparse
+sequence-style=terminator
+type-decl=sparse
+wrap-comments=true
+if-then-else=k-r
+let-and=sparse
+space-around-records
+space-around-lists
+space-around-arrays
+cases-exp-indent=2
+break-cases=all
+indicate-nested-or-patterns=unsafe-no
+parse-docstrings=true
