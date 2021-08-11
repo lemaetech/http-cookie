@@ -165,3 +165,16 @@ val compare : t -> t -> int
 (** [compare c1 c2] returns [0] if [c1] and [c2] are equal, a positive integer
     if [c1] is greater than [c2] and a negative integer if [c1] is less than
     [c2] *)
+
+(** {1 Updates} *)
+
+val update_value : string -> t -> t
+val update_name : string -> t -> t
+val update_path : string option -> t -> t
+val update_domain : string option -> t -> t
+val update_expires : date_time option -> t -> t
+val update_max_age : int option -> t -> t
+val update_secure : bool option -> t -> t
+val update_http_only : bool option -> t -> t
+val update_same_site : Same_site.t option -> t -> t
+val update_extension : string option -> t -> t

@@ -1,3 +1,7 @@
+## v3.1.0 2021-08-11 
+
+- Add `update_*` functions.
+
 ## v3.0.0 2020-24-12 UK
 
 - Backwards incompatible change: remove `base-unix` dependency. Uses own `date_time` instead of `Unix.tm`.

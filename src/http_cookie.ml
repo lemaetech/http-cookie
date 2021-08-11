@@ -41,7 +41,8 @@ let date_to_string (tm : date_time) =
     | `Wed -> "Wed"
     | `Thu -> "Thu"
     | `Fri -> "Fri"
-    | `Sat -> "Sat" in
+    | `Sat -> "Sat"
+  in
   let month =
     match tm.month with
     | 0 -> "Jan"
@@ -99,7 +100,8 @@ let parse_cookie_av attr_value err =
     else
       let c = av.[i] in
       if is_control_char c || Char.equal c ';' then err c
-      else validate (i + 1) av in
+      else validate (i + 1) av
+  in
   match attr_value with
   | None -> None
   | Some value when String.length value = 0 -> None
@@ -121,10 +123,12 @@ let parse_name name =
      |']' | '?' | '=' | '{' | '}' | ' ' ->
         true
     | c when Char.code c = 9 -> true
-    | _ -> false in
+    | _ -> false
+  in
   let is_us_ascii_char c =
     let code = Char.code c in
-    code >= 0 && code <= 127 in
+    code >= 0 && code <= 127
+  in
   let rec validate i name =
     if i >= String.length name then name
     else
@@ -135,9 +139,11 @@ let parse_name name =
       | c when is_separator c -> err "Separator character '%c' found in name." c
       | c when not (is_us_ascii_char c) ->
           err "Invalid US-ASCII character '%c' found in name." c
-      | _ -> validate (i + 1) name in
+      | _ -> validate (i + 1) name
+  in
   let name =
-    if String.length name > 0 then name else err "0 length cookie name." in
+    if String.length name > 0 then name else err "0 length cookie name."
+  in
   validate 0 name
 
 (* Based https://tools.ietf.org/html/rfc6265#section-4.1.1
@@ -164,17 +170,20 @@ let parse_value value =
         0x20 <= code && code < 0x7f && code <> dquote && code <> semi
         && code <> b_slash
       then validate (i + 1) s
-      else err "Invalid char '%c' found in cookie value" c in
+      else err "Invalid char '%c' found in cookie value" c
+  in
   let strip_quotes s =
     let is_dquote = String.equal "\"" in
     let first_s = String.sub s 0 1 in
     let last_s = String.sub s (String.length s - 1) 1 in
     if is_dquote first_s && is_dquote last_s then
       String.sub s 1 (String.length s - 2)
-    else s in
+    else s
+  in
   let value =
     if String.length value > 0 then value
-    else err "Cookie value length must be > 0." in
+    else err "Cookie value length must be > 0."
+  in
   strip_quotes value |> validate 0
 
 (** See https://tools.ietf.org/html/rfc1034#section-3.5 and
@@ -197,19 +206,23 @@ let parse_domain_av domain_av =
           else if label_count > 63 || label_count = 0 then
             err "Domain name label can't exceed 63 characters or have 0 length"
           else validate c 0 (i + 1, s) (* reset label_count *)
-      | _ -> err "Invalid character '%c'" c in
+      | _ -> err "Invalid character '%c'" c
+  in
   let validate_length av =
     if String.length av > 255 then
       err "Domain attribute value length must not exceed 255 characters"
-    else () in
+    else ()
+  in
   let validate_last_char last_char =
     if Char.equal '-' last_char then
       err "Domain attribute value's last character is not allowed to be '-'"
-    else () in
+    else ()
+  in
   let validate_label_length label_count =
     if label_count > 63 then
       err "Domain attribute value label length can't exceed 63 characters"
-    else () in
+    else ()
+  in
   match domain_av with
   | None -> None
   | Some domain_av when String.length domain_av = 0 -> None
@@ -219,7 +232,8 @@ let parse_domain_av domain_av =
         if String.equal "." (String.sub domain_av 0 1) then
           (* A cookie domain attribute may start with a leading dot. *)
           String.sub domain_av 0 1
-        else domain_av in
+        else domain_av
+      in
       let domain_av, last_char, label_count = validate '.' 0 (0, domain_av) in
       let domain_av = domain_av in
       let () = validate_last_char last_char in
@@ -290,3 +304,15 @@ let to_set_cookie_header_value t =
   Buffer.contents buf
 
 let to_cookie_header_value t = Format.sprintf "%s=%s" (name t) (value t)
+
+(* Updates. *)
+let update_value v c = {c with value= parse_value v}
+let update_name name c = {c with name= parse_name name}
+let update_path p c = {c with path= parse_path p}
+let update_domain d c = {c with domain= parse_domain_av d}
+let update_expires expires c = {c with expires}
+let update_max_age m c = {c with max_age= parse_max_age m}
+let update_secure secure c = {c with secure}
+let update_http_only http_only c = {c with http_only}
+let update_same_site same_site c = {c with same_site}
+let update_extension extension c = {c with extension}
