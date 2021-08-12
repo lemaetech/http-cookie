@@ -157,15 +157,14 @@ let cookie_pair =
     (fun cookie_name' _ cookie_value' -> (cookie_name', cookie_value'))
     cookie_name (char '=') cookie_value
 
-let cookie_string = sep_by1 (char ';' *> char '\x20') cookie_pair
-let ows = skip_while (function '\x20' | '\t' -> true | _ -> false)
+let _ows = skip_while (function '\x20' | '\t' -> true | _ -> false)
 
 (* https://datatracker.ietf.org/doc/html/rfc6265#section-4.2.1
 
    cookie-header = "Cookie:" OWS cookie-string OWS
    cookie-string = cookie-pair *( ";" SP cookie-pair )
 *)
-let cookie_header = ows *> cookie_string <* ows
+let cookie_string = sep_by1 (char ';' *> char '\x20') cookie_pair
 
 (* Domain attribute value:
 
@@ -289,7 +288,7 @@ let create ?path ?domain ?expires ?max_age ?secure ?http_only ?same_site
   ; extension }
 
 let of_cookie header =
-  parse_string ~consume:All cookie_header header
+  parse_string ~consume:All cookie_string header
   |> Result.map (fun cookies' ->
          List.map
            (fun (name, value) ->
