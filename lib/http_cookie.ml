@@ -153,9 +153,8 @@ let cookie_value =
   take_while cookie_octet <|> (char '"' *> take_while cookie_octet <* char '"')
 
 let cookie_pair =
-  lift3
-    (fun cookie_name' _ cookie_value' -> (cookie_name', cookie_value'))
-    cookie_name (char '=') cookie_value
+  cookie_name
+  >>= fun name -> char '=' *> cookie_value >>| fun value -> (name, value)
 
 let _ows = skip_while (function '\x20' | '\t' -> true | _ -> false)
 
