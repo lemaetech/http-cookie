@@ -8,10 +8,6 @@
  * %%NAME%% %%VERSION%%
  *-------------------------------------------------------------------------*)
 
-exception Cookie of string
-
-let ( let* ) r f = Result.bind r f
-
 type t =
   { name: string
   ; value: string
@@ -117,6 +113,252 @@ and to_string pp t =
 let date_to_string tm = to_string pp_date_time tm
 let same_site_to_string ss = to_string pp_same_site ss
 
+(* Cookie parsers.
+
+   https://datatracker.ietf.org/doc/html/rfc6265#section-4.1.1
+
+   set-cookie-header = "Set-Cookie:" SP set-cookie-string
+   set-cookie-string = cookie-pair *( ";" SP cookie-av )
+   cookie-pair       = cookie-name "=" cookie-value
+   cookie-name       = token
+   cookie-value      = *cookie-octet / ( DQUOTE *cookie-octet DQUOTE )
+   cookie-octet      = %x21 / %x23-2B / %x2D-3A / %x3C-5B / %x5D-7E
+                         ; US-ASCII characters excluding CTLs,
+                         ; whitespace DQUOTE, comma, semicolon,
+                         ; and backslash
+   token             = <token, defined in [RFC2616], Section 2.2>
+*)
+open Angstrom
+
+let token =
+  take_while1 (function
+    | '\x00' .. '\x1F' | '\x7F' -> false (* CONTROL chars *)
+    | '(' | ')' | '<' | '>' | '@' | ',' | ';' | ':' | '\\' | '"' | '/' | '['
+     |']' | '?' | '=' | '{' | '}' | ' ' ->
+        false (* SEPARATOR chars *)
+    | _ -> true )
+
+let cookie_name = token
+
+let cookie_value =
+  let cookie_octet = function
+    | '\x21'
+     |'\x23' .. '\x2B'
+     |'\x2D' .. '\x3A'
+     |'\x3C' .. '\x5B'
+     |'\x5D' .. '\x7E' ->
+        true
+    | _ -> false
+  in
+  take_while cookie_octet <|> (char '"' *> take_while cookie_octet <* char '"')
+
+let cookie_pair =
+  lift3
+    (fun cookie_name' _ cookie_value' -> (cookie_name', cookie_value'))
+    cookie_name (char '=') cookie_value
+
+let cookie_string = sep_by1 (char ';' *> char '\x20') cookie_pair
+let ows = skip_while (function '\x20' | '\t' -> true | _ -> false)
+
+(* https://datatracker.ietf.org/doc/html/rfc6265#section-4.2.1
+
+   cookie-header = "Cookie:" OWS cookie-string OWS
+   cookie-string = cookie-pair *( ";" SP cookie-pair )
+*)
+let cookie_header = ows *> cookie_string <* ows
+
+(* Domain attribute value:
+
+    domain-value      = <subdomain>
+                       ; defined in [RFC1034], Section 3.5, as
+                       ; enhanced by [RFC1123], Section 2.1
+
+   https://datatracker.ietf.org/doc/html/rfc1034#section-3.5
+
+    <subdomain> ::= <label> | <subdomain> "." <label>
+    <label> ::= <letter> [ [ <ldh-str> ] <let-dig> ]
+    <ldh-str> ::= <let-dig-hyp> | <let-dig-hyp> <ldh-str>
+    <let-dig-hyp> ::= <let-dig> | "-"
+    <let-dig> ::= <letter> | <digit>
+    <letter> ::= any one of the 52 alphabetic characters A through Z or a to z
+    <digit> ::= any one of the ten digits 0 through 9
+*)
+let string_of_list l = List.to_seq l |> String.of_seq
+
+let domain_value =
+  let is_digit = function '0' .. '9' -> true | _ -> false in
+  let is_letter = function 'a' .. 'z' | 'A' .. 'Z' -> true | _ -> false in
+  let digit = satisfy is_digit in
+  let letter = satisfy is_letter in
+  let let_dig = letter <|> digit in
+  let let_dig_hyp = let_dig <|> char '-' in
+  let ldh_str = many1 let_dig_hyp in
+  let label =
+    let* first_char = letter in
+    let* middle_chars = option [] ldh_str in
+    let+ middle_chars =
+      let len = List.length middle_chars in
+      if len > 0 && len <= 63 then
+        let last_char = List.nth middle_chars (len - 1) in
+        if is_digit last_char || is_letter last_char then return middle_chars
+        else
+          fail
+            (Format.sprintf
+               "Invalid 'Domain' cookie attribute value: %s. middle characters \
+                must end with either a letter or a digit"
+               (string_of_list middle_chars) )
+      else if len = 0 then return []
+      else
+        fail
+          (Format.sprintf
+             "Invalid 'Domain' cookie attribute value: %s. label must 63 \
+              characters or less."
+             (string_of_list middle_chars) )
+    in
+    string_of_list (first_char :: middle_chars)
+  in
+  let subdomain = sep_by1 (char '.') label in
+  subdomain
+
+let cookie_av =
+  take_while1 (function
+    | '\x00' .. '\x1F' | '\x7F' -> false (* CONTROL chars *)
+    | ';' -> false
+    | _ -> true )
+
+let parse p input = parse_string ~consume:Consume.All p input
+let parse_name name = parse cookie_name name
+let parse_value value = parse cookie_value value
+
+let parse_domain_value domain =
+  match domain with
+  | None -> Ok None
+  | Some domain_av ->
+      let domain_av = String.trim domain_av in
+      let len = String.length domain_av in
+      if len = 0 then Ok None
+      else if len > 255 then
+        Error "Domain attribute value length must not exceed 255 characters"
+      else
+        let domain_av =
+          if String.equal "." (String.sub domain_av 0 1) then
+            (* A cookie domain attribute may start with a leading dot. *)
+            String.sub domain_av 0 1
+          else domain_av
+        in
+        parse (domain_value *> return (Some domain_av)) domain_av
+
+let parse_path_value path =
+  match path with
+  | Some path -> parse (cookie_av >>| Option.some) path
+  | None -> Ok None
+
+let parse_extension_value extension =
+  match extension with
+  | Some extension -> parse (cookie_av >>| Option.some) extension
+  | None -> Ok None
+
+let parse_max_age max_age =
+  match max_age with
+  | None -> Ok None
+  | Some ma ->
+      if ma <= 0 then
+        Error "Cookies 'Max-Age' attribute is less than or equal to 0"
+      else Ok (Some ma)
+
+let ( let* ) r f = Result.bind r f
+let ( let+ ) r f = Result.map f r
+
+let create ?path ?domain ?expires ?max_age ?secure ?http_only ?same_site
+    ?extension ~name value =
+  let* name = parse_name name in
+  let* value = parse_value value in
+  let* domain = parse_domain_value domain in
+  let* path = parse_path_value path in
+  let* max_age = parse_max_age max_age in
+  let+ extension = parse_extension_value extension in
+  { name
+  ; value
+  ; path
+  ; domain
+  ; expires
+  ; max_age
+  ; secure
+  ; http_only
+  ; same_site
+  ; extension }
+
+let of_cookie header =
+  parse_string ~consume:All cookie_header header
+  |> Result.map (fun cookies' ->
+         List.map
+           (fun (name, value) ->
+             { name
+             ; value
+             ; path= None
+             ; domain= None
+             ; expires= None
+             ; max_age= None
+             ; secure= None
+             ; http_only= None
+             ; same_site= None
+             ; extension= None } )
+           cookies' )
+
+let to_set_cookie t =
+  let module O = Option in
+  let buf = Buffer.create 50 in
+  let add_str fmt = Format.ksprintf (Buffer.add_string buf) fmt in
+  add_str "%s=%s" (name t) (value t) ;
+  O.iter (fun path -> add_str "; Path=%s" path) (path t) ;
+  O.iter (fun d -> add_str "; Domain=%s" d) (domain t) ;
+  O.iter
+    (fun expires -> add_str "; Expires=%s" @@ date_to_string expires)
+    (expires t) ;
+  O.iter
+    (fun max_age -> if max_age > 0 then add_str "; Max-Age=%d" max_age)
+    (max_age t) ;
+  O.iter (fun secure -> if secure then add_str "; Secure") t.secure ;
+  O.iter (fun http_only -> if http_only then add_str "; HttpOnly") t.http_only ;
+  O.iter
+    (fun same_site -> add_str "; SameSite=%s" (same_site_to_string same_site))
+    t.same_site ;
+  O.iter (fun extension -> add_str "; %s" extension) (extension t) ;
+  Buffer.contents buf
+
+let to_cookie t = Format.sprintf "%s=%s" (name t) (value t)
+
+(* Updates. *)
+let update_value value cookie =
+  let+ value = parse_value value in
+  {cookie with value}
+
+let update_name name cookie =
+  let+ name = parse_name name in
+  {cookie with name}
+
+let update_path path cookie =
+  let+ path = parse_path_value path in
+  {cookie with path}
+
+let update_domain domain cookie =
+  let+ domain = parse_domain_value domain in
+  {cookie with domain}
+
+let update_expires expires cookie = {cookie with expires}
+
+let update_max_age max_age cookie =
+  let+ max_age = parse_max_age max_age in
+  {cookie with max_age}
+
+let update_secure secure cookie = {cookie with secure}
+let update_http_only http_only cookie = {cookie with http_only}
+let update_same_site same_site cookie = {cookie with same_site}
+
+let update_extension extension cookie =
+  let+ extension = parse_extension_value extension in
+  {cookie with extension}
+
 (* Date time *)
 
 let compare_date_time (dt1 : date_time) (dt2 : date_time) =
@@ -146,270 +388,3 @@ let date_time ~year ~month ~weekday ~day_of_month ~hour ~minutes ~seconds =
     else Error (Format.sprintf "Invalid seconds (>=0 && < 60): %d" seconds)
   in
   Ok {year; month; weekday; day_of_month; hour; minutes; seconds}
-
-let is_control_char c =
-  let code = Char.code c in
-  (code >= 0 && code <= 31) || code = 127
-
-let trap_exn f =
-  try Ok (f ()) with
-  | Cookie s -> Error s
-  | exn -> Error (Printexc.to_string exn)
-
-let err fmt = Format.ksprintf (fun s -> raise (Cookie s)) fmt
-
-(* Parses cookie attribute value. Cookie attribute values shouldn't contain any
-   CTL(control characters) or ';' char. *)
-let parse_cookie_av attr_value err =
-  let rec validate i av =
-    if i >= String.length av then av
-    else
-      let c = av.[i] in
-      if is_control_char c || Char.equal c ';' then err c
-      else validate (i + 1) av
-  in
-  match attr_value with
-  | None -> None
-  | Some value when String.length value = 0 -> None
-  | Some value -> Some (validate 0 value)
-
-let parse_path path =
-  err "Cookie 'Path' attribute value contains invalid character '%c'"
-  |> parse_cookie_av path
-
-let parse_extension extension =
-  err "Cookie extension value contains invalid character '%c'"
-  |> parse_cookie_av extension
-
-(* Parses a given cookie into a cookie_name. Valid cookie name/token as defined
-   in https://tools.ietf.org/html/rfc2616#section-2.2 *)
-let parse_name name =
-  let is_separator = function
-    | '(' | ')' | '<' | '>' | '@' | ',' | ';' | ':' | '\\' | '"' | '/' | '['
-     |']' | '?' | '=' | '{' | '}' | ' ' ->
-        true
-    | c when Char.code c = 9 -> true
-    | _ -> false
-  in
-  let is_us_ascii_char c =
-    let code = Char.code c in
-    code >= 0 && code <= 127
-  in
-  let rec validate i name =
-    if i >= String.length name then name
-    else
-      let c = name.[i] in
-      match c with
-      | c when is_control_char c ->
-          err "Control character '%c' found in name." c
-      | c when is_separator c -> err "Separator character '%c' found in name." c
-      | c when not (is_us_ascii_char c) ->
-          err "Invalid US-ASCII character '%c' found in name." c
-      | _ -> validate (i + 1) name
-  in
-  let name =
-    if String.length name > 0 then name else err "0 length cookie name."
-  in
-  validate 0 name
-
-(* Based https://tools.ietf.org/html/rfc6265#section-4.1.1
- * cookie-value      = *cookie-octet / ( DQUOTE *cookie-octet DQUOTE )
- * cookie-octet      = %x21 / %x23-2B / %x2D-3A / %x3C-5B / %x5D-7E
- *
- * US-ASCII characters excluding CTLs, whitespace DQUOTE, comma, semicolon,
- * and backslash
- *
- * We loosen this as spaces and commas are common in cookie values but we produce
- * a quoted cookie-value in when value starts or ends with a comma or space.
- * See https://golang.org/issue/7243 for the discussion.
- *)
-let parse_value value =
-  let dquote = Char.code '"' in
-  let semi = Char.code ';' in
-  let b_slash = Char.code '\\' in
-  let rec validate i s =
-    if i >= String.length s then s
-    else
-      let c = s.[i] in
-      let code = Char.code c in
-      if
-        0x20 <= code && code < 0x7f && code <> dquote && code <> semi
-        && code <> b_slash
-      then validate (i + 1) s
-      else err "Invalid char '%c' found in cookie value" c
-  in
-  let strip_quotes s =
-    let is_dquote = String.equal "\"" in
-    let first_s = String.sub s 0 1 in
-    let last_s = String.sub s (String.length s - 1) 1 in
-    if is_dquote first_s && is_dquote last_s then
-      String.sub s 1 (String.length s - 2)
-    else s
-  in
-  let value =
-    if String.length value > 0 then value
-    else err "Cookie value length must be > 0."
-  in
-  strip_quotes value |> validate 0
-
-(** See https://tools.ietf.org/html/rfc1034#section-3.5 and
-    https://tools.ietf.org/html/rfc1123#section-2 *)
-let parse_domain_av domain_av =
-  let rec validate last_char label_count (i, s) =
-    if i >= String.length s then (s, last_char, label_count)
-    else
-      let label_count = label_count + 1 in
-      let c = s.[i] in
-      match c with
-      | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' -> validate c label_count (i + 1, s)
-      | '-' ->
-          if Char.equal last_char '.' then
-            err "Character before '-' cannot be '.'"
-          else validate c label_count (i + 1, s)
-      | '.' ->
-          if Char.equal last_char '.' || Char.equal last_char '-' then
-            err "Character before '.' cannot be '.' or '-'"
-          else if label_count > 63 || label_count = 0 then
-            err "Domain name label can't exceed 63 characters or have 0 length"
-          else validate c 0 (i + 1, s) (* reset label_count *)
-      | _ -> err "Invalid character '%c'" c
-  in
-  let validate_length av =
-    if String.length av > 255 then
-      err "Domain attribute value length must not exceed 255 characters"
-    else ()
-  in
-  let validate_last_char last_char =
-    if Char.equal '-' last_char then
-      err "Domain attribute value's last character is not allowed to be '-'"
-    else ()
-  in
-  let validate_label_length label_count =
-    if label_count > 63 then
-      err "Domain attribute value label length can't exceed 63 characters"
-    else ()
-  in
-  match domain_av with
-  | None -> None
-  | Some domain_av when String.length domain_av = 0 -> None
-  | Some domain_av ->
-      let () = validate_length domain_av in
-      let domain_av =
-        if String.equal "." (String.sub domain_av 0 1) then
-          (* A cookie domain attribute may start with a leading dot. *)
-          String.sub domain_av 0 1
-        else domain_av
-      in
-      let domain_av, last_char, label_count = validate '.' 0 (0, domain_av) in
-      let domain_av = domain_av in
-      let () = validate_last_char last_char in
-      let () = validate_label_length label_count in
-      Some domain_av
-
-let parse_max_age max_age =
-  match max_age with
-  | None -> None
-  | Some ma ->
-      if ma <= 0 then
-        err "Cookies 'Max-Age' attribute is less than or equal to 0"
-      else Option.some ma
-
-let create ?path ?domain ?expires ?max_age ?secure ?http_only ?same_site
-    ?extension name ~value =
-  trap_exn (fun () ->
-      let name = parse_name name in
-      let value = parse_value value in
-      let domain = parse_domain_av domain in
-      let path = parse_path path in
-      let max_age = parse_max_age max_age in
-      let extension = parse_extension extension in
-      { name
-      ; value
-      ; path
-      ; domain
-      ; expires
-      ; max_age
-      ; secure
-      ; http_only
-      ; same_site
-      ; extension } )
-
-(* https://datatracker.ietf.org/doc/html/rfc6265#section-4.2.1
-
-   cookie-header = "Cookie:" OWS cookie-string OWS
-   cookie-string = cookie-pair *( ";" SP cookie-pair )
-*)
-let of_cookie header =
-  let open Angstrom in
-  let token =
-    take_while1 (function
-      | '\x00' .. '\x1F' | '\x7F' -> false (* CONTROL chars *)
-      | '(' | ')' | '<' | '>' | '@' | ',' | ';' | ':' | '\\' | '"' | '/' | '['
-       |']' | '?' | '=' | '{' | '}' | ' ' ->
-          false (* SEPARATOR chars *)
-      | _ -> true )
-  in
-  let cookie_name = token in
-  let cookie_octet = function
-    | '\x21'
-     |'\x23' .. '\x2B'
-     |'\x2D' .. '\x3A'
-     |'\x3C' .. '\x5B'
-     |'\x5D' .. '\x7E' ->
-        true
-    | _ -> false
-  in
-  let cookie_value =
-    take_while cookie_octet <|> (char '"' *> take_while cookie_octet <* char '"')
-  in
-  let cookie_pair =
-    lift3
-      (fun cookie_name' _ cookie_value' ->
-        (parse_name cookie_name', parse_value cookie_value') )
-      cookie_name (char '=') cookie_value
-  in
-  let cookie_string = sep_by1 (char ';' *> char '\x20') cookie_pair in
-  let ows = skip_while (function '\x20' | '\t' -> true | _ -> false) in
-  let cookies = ows *> cookie_string <* ows in
-  trap_exn (fun () -> parse_string ~consume:All cookies header)
-  |> Result.join
-  |> Result.map (fun cookies' ->
-         List.map
-           (fun (cookie_name', cookie_value') ->
-             Result.get_ok @@ create cookie_name' ~value:cookie_value' )
-           cookies' )
-
-let to_set_cookie t =
-  let module O = Option in
-  let buf = Buffer.create 50 in
-  let add_str fmt = Format.ksprintf (Buffer.add_string buf) fmt in
-  add_str "%s=%s" (name t) (value t) ;
-  O.iter (fun path -> add_str "; Path=%s" path) (path t) ;
-  O.iter (fun d -> add_str "; Domain=%s" d) (domain t) ;
-  O.iter
-    (fun expires -> add_str "; Expires=%s" @@ date_to_string expires)
-    (expires t) ;
-  O.iter
-    (fun max_age -> if max_age > 0 then add_str "; Max-Age=%d" max_age)
-    (max_age t) ;
-  O.iter (fun secure -> if secure then add_str "; Secure") t.secure ;
-  O.iter (fun http_only -> if http_only then add_str "; HttpOnly") t.http_only ;
-  O.iter
-    (fun same_site -> add_str "; SameSite=%s" (same_site_to_string same_site))
-    t.same_site ;
-  O.iter (fun extension -> add_str "; %s" extension) (extension t) ;
-  Buffer.contents buf
-
-let to_cookie t = Format.sprintf "%s=%s" (name t) (value t)
-
-(* Updates. *)
-let update_value v c = {c with value= parse_value v}
-let update_name name c = {c with name= parse_name name}
-let update_path p c = {c with path= parse_path p}
-let update_domain d c = {c with domain= parse_domain_av d}
-let update_expires expires c = {c with expires}
-let update_max_age m c = {c with max_age= parse_max_age m}
-let update_secure secure c = {c with secure}
-let update_http_only http_only c = {c with http_only}
-let update_same_site same_site c = {c with same_site}
-let update_extension extension c = {c with extension}

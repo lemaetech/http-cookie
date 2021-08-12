@@ -31,9 +31,6 @@ and date_time
     https://tools.ietf.org/html/draft-ietf-httpbis-cookie-same-site-00. *)
 and same_site = [`None | `Lax | `Strict]
 
-(** raised when one of the cookie attribute values are invalid. *)
-exception Cookie of string
-
 (** {1 Http_cookie} *)
 
 val date_time :
@@ -69,15 +66,14 @@ val create :
   -> ?http_only:bool
   -> ?same_site:same_site
   -> ?extension:string
+  -> name:string
   -> string
-  -> value:string
   -> (t, string) result
-(** [create ~path ~domain ~expires ~max_age ~secure ~http_only ~same_site ~extension name
-    ~value]
-    returns a cookie instance {!type:t} with cookie name [name] and value
-    [value] along with the given attributes.
-
-    @raise Cookie if any of the cookie attributes fail validation. *)
+(** [create ~path ~domain ~expires ~max_age ~secure ~http_only ~same_site ~extension ~name
+    value]
+    is [Ok cookie] if all of the given parameters are valid cookie attribute
+    values. Otherwise it is [Error error] where [error] is the description of
+    the error. *)
 
 val of_cookie : string -> (t list, string) result
 (** [of_cookie header] parses [header] - a string value which represents HTTP
@@ -88,9 +84,17 @@ val of_cookie : string -> (t list, string) result
 
     {4 Examples}
 
-    This returns two cookies with cookie names [SID] and [lang-en].
+    This returns two cookies with cookie names [SID] and [lang].
 
     {[ Http_cookie.of_cookie "SID=31d4d96e407aad42; lang=en-US" ]} *)
+
+val to_cookie : t -> string
+(** [to_cookie c] serializes [c] into a string which can be encoded as value for
+    HTTP [Cookie] header.
+
+    Example of a string returned by the function.
+
+    {v SID=31d4d96e407aad42 v} *)
 
 val to_set_cookie : t -> string
 (** [to_set_cookie c] serializes cookie [c] into a string which can be encoded
@@ -104,14 +108,6 @@ val to_set_cookie : t -> string
     {v
 SID=31d4d96e407aad42; Path=/; Secure; HttpOnly; Expires=Sun, 06 Nov 1994 08:49:37 GMT
     v} *)
-
-val to_cookie : t -> string
-(** [to_cookie c] serializes [c] into a string which can be encoded as value for
-    HTTP [Cookie] header.
-
-    Example of a string returned by the function.
-
-    {v SID=31d4d96e407aad42 v} *)
 
 (** {1 Cookie Attributes}
 
@@ -179,21 +175,18 @@ val compare : t -> t -> int
 
 val compare_date_time : date_time -> date_time -> int
 
-(** {1 Updates}
+(** {1 Updates} *)
 
-    All of the update functions may raise [Cookie err] exception if attempt is
-    made to update a cookie with invalid values. *)
-
-val update_value : string -> t -> t
-val update_name : string -> t -> t
-val update_path : string option -> t -> t
-val update_domain : string option -> t -> t
+val update_value : string -> t -> (t, string) result
+val update_name : string -> t -> (t, string) result
+val update_path : string option -> t -> (t, string) result
+val update_domain : string option -> t -> (t, string) result
 val update_expires : date_time option -> t -> t
-val update_max_age : int option -> t -> t
+val update_max_age : int option -> t -> (t, string) result
 val update_secure : bool option -> t -> t
 val update_http_only : bool option -> t -> t
 val update_same_site : same_site option -> t -> t
-val update_extension : string option -> t -> t
+val update_extension : string option -> t -> (t, string) result
 
 (** {1 Pretty Printers} *)
 
