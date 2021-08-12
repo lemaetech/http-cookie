@@ -116,41 +116,38 @@ let date_to_string tm = to_string pp_date_time tm
 let same_site_to_string ss = to_string pp_same_site ss
 
 (* Date time *)
-let ( let* ) r f = Result.bind r f
 
 let compare_date_time (dt1 : date_time) (dt2 : date_time) =
   Stdlib.compare dt1 dt2
 
+let err fmt = Format.ksprintf (fun s -> raise (Cookie s)) fmt
+
 let date_time ~year ~month ~weekday ~day_of_month ~hour ~minutes ~seconds =
-  let* year =
-    if year > 0 && year < 9999 then Ok year
-    else Error (Format.sprintf "Invalid year (>0 && < 9999): %d" year)
+  let year =
+    if year > 0 && year < 9999 then year
+    else err "Invalid year (>0 && < 9999): %d" year
   in
-  let* day_of_month =
-    if day_of_month > 0 && day_of_month <= 31 then Ok day_of_month
-    else
-      Error
-        (Format.sprintf "Invalid day of month ( > 0 && <= 31): %d" day_of_month)
+  let day_of_month =
+    if day_of_month > 0 && day_of_month <= 31 then day_of_month
+    else err "Invalid day of month ( > 0 && <= 31): %d" day_of_month
   in
-  let* hour =
-    if hour > 0 && hour < 24 then Ok hour
-    else Error (Format.sprintf "Invalid hour (>0 && <24): %d" hour)
+  let hour =
+    if hour > 0 && hour < 24 then hour
+    else err "Invalid hour (>0 && <24): %d" hour
   in
-  let* minutes =
-    if minutes >= 0 && minutes < 60 then Ok minutes
-    else Error (Format.sprintf "Invalid minutes (>=0 && < 60): %d" minutes)
+  let minutes =
+    if minutes >= 0 && minutes < 60 then minutes
+    else err "Invalid minutes (>=0 && < 60): %d" minutes
   in
-  let* seconds =
-    if seconds >= 0 && seconds < 60 then Ok seconds
-    else Error (Format.sprintf "Invalid seconds (>=0 && < 60): %d" seconds)
+  let seconds =
+    if seconds >= 0 && seconds < 60 then seconds
+    else err "Invalid seconds (>=0 && < 60): %d" seconds
   in
-  Ok {year; month; weekday; day_of_month; hour; minutes; seconds}
+  {year; month; weekday; day_of_month; hour; minutes; seconds}
 
 let is_control_char c =
   let code = Char.code c in
   (code >= 0 && code <= 31) || code = 127
-
-let err fmt = Format.ksprintf (fun s -> raise (Cookie s)) fmt
 
 (* Parses cookie attribute value. Cookie attribute values shouldn't contain any
    CTL(control characters) or ';' char. *)
@@ -357,7 +354,8 @@ let of_cookie header =
   in
   let cookie_pair =
     lift3
-      (fun cookie_name' _ cookie_value' -> (cookie_name', cookie_value'))
+      (fun cookie_name' _ cookie_value' ->
+        (parse_name cookie_name', parse_value cookie_value') )
       cookie_name (char '=') cookie_value
   in
   let cookie_string = sep_by1 (char ';' *> char '\x20') cookie_pair in

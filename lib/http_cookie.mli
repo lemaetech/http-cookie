@@ -56,9 +56,10 @@ val date_time :
   -> hour:int (** 24 hour format *)
   -> minutes:int
   -> seconds:int
-  -> (date_time, string) result
-(** [date_time] is [Ok dt] if all of the given parameters are valid for creating
-    {!type:date_time} value, otherwise [Error err] is denotes the error. *)
+  -> date_time
+(** [date_time] is [dt] if all of the given parameters are valid for creating
+    {!type:date_time} value, otherwise [Cookie] exception is raised if any of
+    the arguments are invalid. *)
 
 val create :
      ?path:string
