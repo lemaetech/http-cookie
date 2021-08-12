@@ -26,4 +26,5 @@
   (fmt
    (>= 0.8.9))
   (angstrom
-   (>= 0.15.0))))
+   (>= 0.15.0))
+  (ppx_expect :with-test)))

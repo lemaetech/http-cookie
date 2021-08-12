@@ -27,14 +27,8 @@
     attributes in [Set-Cookie] response header. *)
 type t
 
-and date_time =
-  { year: int  (** Four digit year value, e.g. 2020, 2019, 1980 etc. *)
-  ; month: int  (** Begins from 0, i.e. January = 0. *)
-  ; weekday: [`Sun | `Mon | `Tue | `Wed | `Thu | `Fri | `Sat]
-  ; day_of_month: int  (** Day of the month value from 1 - 31. *)
-  ; hour: int  (** 24 hour value from 0-23 *)
-  ; minutes: int  (** Minutes value from 0 - 59*)
-  ; seconds: int  (** Seconds value from 0 - 60 *) }
+(** Represents a cookie expiry datetime value. *)
+and date_time
 
 (** Represents 'Same-site' cookie attribute. See
     https://tools.ietf.org/html/draft-ietf-httpbis-cookie-same-site-00. *)
@@ -42,7 +36,31 @@ and same_site = [`None | `Lax | `Strict]
 
 exception Cookie of string
 
-(** {1 Constructors} *)
+(** {1 Http_cookie} *)
+
+val date_time :
+     year:int
+  -> month:
+       [ `Jan
+       | `Feb
+       | `Mar
+       | `Apr
+       | `May
+       | `Jun
+       | `Jul
+       | `Aug
+       | `Sep
+       | `Oct
+       | `Nov
+       | `Dec ]
+  -> weekday:[`Sun | `Mon | `Tue | `Wed | `Thu | `Fri | `Sat]
+  -> day_of_month:int
+  -> hour:int (** 24 hour format *)
+  -> minutes:int
+  -> seconds:int
+  -> (date_time, string) result
+(** [date_time] is [Ok dt] if all of the given parameters are valid for creating
+    {!type:date_time} value, otherwise [Error err] is denotes the error. *)
 
 val create :
      ?path:string
@@ -161,7 +179,12 @@ val compare : t -> t -> int
     if [c1] is greater than [c2] and a negative integer if [c1] is less than
     [c2] *)
 
-(** {1 Updates} *)
+val compare_date_time : date_time -> date_time -> int
+
+(** {1 Updates}
+
+    All of the update functions may raise [Cookie err] exception if attempt is
+    made to update a cookie with invalid values. *)
 
 val update_value : string -> t -> t
 val update_name : string -> t -> t
@@ -174,7 +197,7 @@ val update_http_only : bool option -> t -> t
 val update_same_site : same_site option -> t -> t
 val update_extension : string option -> t -> t
 
-(** {1 Pretty Printer} *)
+(** {1 Pretty Printers} *)
 
 val pp : Format.formatter -> t -> unit
 val pp_date_time : Format.formatter -> date_time -> unit
