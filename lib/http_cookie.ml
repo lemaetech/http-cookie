@@ -124,13 +124,13 @@ let compare_date_time (dt1 : date_time) (dt2 : date_time) =
 let date_time ~year ~month ~weekday ~day_of_month ~hour ~minutes ~seconds =
   let* year =
     if year > 0 && year < 9999 then Ok year
-    else Error (Format.sprintf "Invalid year: %d" year)
+    else Error (Format.sprintf "Invalid year (>0 && < 9999): %d" year)
   in
   let* day_of_month =
-    if day_of_month > 0 && day_of_month < 31 then Ok day_of_month
+    if day_of_month > 0 && day_of_month <= 31 then Ok day_of_month
     else
       Error
-        (Format.sprintf "Invalid day of month ( > 0 && < 32): %d" day_of_month)
+        (Format.sprintf "Invalid day of month ( > 0 && <= 31): %d" day_of_month)
   in
   let* hour =
     if hour > 0 && hour < 24 then Ok hour
@@ -138,11 +138,11 @@ let date_time ~year ~month ~weekday ~day_of_month ~hour ~minutes ~seconds =
   in
   let* minutes =
     if minutes >= 0 && minutes < 60 then Ok minutes
-    else Error (Format.sprintf "Invalid minutes (>=0 && < 60):%d" minutes)
+    else Error (Format.sprintf "Invalid minutes (>=0 && < 60): %d" minutes)
   in
   let* seconds =
     if seconds >= 0 && seconds < 60 then Ok seconds
-    else Error (Format.sprintf "Invalid seconds (>=0 && < 60):%d" seconds)
+    else Error (Format.sprintf "Invalid seconds (>=0 && < 60): %d" seconds)
   in
   Ok {year; month; weekday; day_of_month; hour; minutes; seconds}
 

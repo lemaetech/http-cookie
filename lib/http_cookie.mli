@@ -21,19 +21,17 @@
     The standard implemented by the library is
     {{:https://tools.ietf.org/html/rfc6265} RFC 6265}. *)
 
-(** {1 Types} *)
-
-(** Represents a cookie name-value in [Cookie] request header or a set of cookie
-    attributes in [Set-Cookie] response header. *)
+(** A HTTP cookie. *)
 type t
 
-(** Represents a cookie expiry datetime value. *)
+(** Cookie expiry datetime value. *)
 and date_time
 
-(** Represents 'Same-site' cookie attribute. See
+(** 'Same-site' cookie attribute. See
     https://tools.ietf.org/html/draft-ietf-httpbis-cookie-same-site-00. *)
 and same_site = [`None | `Lax | `Strict]
 
+(** raised when one of the cookie attribute values are invalid. *)
 exception Cookie of string
 
 (** {1 Http_cookie} *)
@@ -95,7 +93,7 @@ val of_cookie : string -> (t list, string) result
     {[ Http_cookie.of_cookie "SID=31d4d96e407aad42; lang=en-US" ]} *)
 
 val to_set_cookie : t -> string
-(** [to_set_header c] serializes cookie [c] into a string which can be encoded
+(** [to_set_cookie c] serializes cookie [c] into a string which can be encoded
     as value for HTTP [Set-Cookie] header.
 
     The datetime format for [expires] attribute is specified in
@@ -115,7 +113,7 @@ val to_cookie : t -> string
 
     {v SID=31d4d96e407aad42 v} *)
 
-(** {1 Query Cookie Attributes}
+(** {1 Cookie Attributes}
 
     Cookie attributes are defined precisely at
     {{:https://tools.ietf.org/html/rfc6265#section-4.1.1} RFC 6262} *)
