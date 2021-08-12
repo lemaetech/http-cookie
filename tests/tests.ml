@@ -1,5 +1,7 @@
 let () = Printexc.record_backtrace false
-let print_date_time r ok = Fmt.result ~ok ~error:Fmt.string Format.std_formatter r
+
+let print_date_time r ok =
+  Fmt.result ~ok ~error:Fmt.string Format.std_formatter r
 
 let%expect_test "date_time: year 0 " =
   let dt =
@@ -133,5 +135,3 @@ let%expect_test "date_time: seconds -1" =
   [%expect {| Invalid seconds (>=0 && < 60): -1 |}]
 
 (* create tests *)
-
-

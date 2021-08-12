@@ -43,7 +43,7 @@ and date_time =
 
 and same_site = [`None | `Lax | `Strict]
 
-let compare (t1 : t) (t2 : t) = compare t1 t2
+(* Attributes *)
 let name c = c.name
 let value c = c.value
 let path c = c.path
@@ -55,6 +55,7 @@ let same_site c = c.same_site
 let http_only c = c.http_only
 let secure c = c.secure
 
+(* Pretty Printers *)
 let rec pp fmt' t =
   let fields =
     [ Fmt.field "name" (fun p -> p.name) Fmt.string
@@ -112,6 +113,12 @@ and to_string pp t =
 
 let date_to_string tm = to_string pp_date_time tm
 let same_site_to_string ss = to_string pp_same_site ss
+
+(* Compare *)
+let compare (t1 : t) (t2 : t) = Stdlib.compare t1 t2
+
+let compare_date_time (dt1 : date_time) (dt2 : date_time) =
+  Stdlib.compare dt1 dt2
 
 (* Cookie parsers.
 
@@ -268,6 +275,31 @@ let parse_max_age max_age =
 let ( let* ) r f = Result.bind r f
 let ( let+ ) r f = Result.map f r
 
+let date_time ~year ~month ~weekday ~day_of_month ~hour ~minutes ~seconds =
+  let* year =
+    if year > 0 && year < 9999 then Ok year
+    else Error (Format.sprintf "Invalid year (>0 && < 9999): %d" year)
+  in
+  let* day_of_month =
+    if day_of_month > 0 && day_of_month <= 31 then Ok day_of_month
+    else
+      Error
+        (Format.sprintf "Invalid day of month ( > 0 && <= 31): %d" day_of_month)
+  in
+  let* hour =
+    if hour > 0 && hour < 24 then Ok hour
+    else Error (Format.sprintf "Invalid hour (>0 && <24): %d" hour)
+  in
+  let* minutes =
+    if minutes >= 0 && minutes < 60 then Ok minutes
+    else Error (Format.sprintf "Invalid minutes (>=0 && < 60): %d" minutes)
+  in
+  let* seconds =
+    if seconds >= 0 && seconds < 60 then Ok seconds
+    else Error (Format.sprintf "Invalid seconds (>=0 && < 60): %d" seconds)
+  in
+  Ok {year; month; weekday; day_of_month; hour; minutes; seconds}
+
 let create ?path ?domain ?expires ?max_age ?secure ?http_only ?same_site
     ?extension ~name value =
   let* name = parse_name name in
@@ -304,6 +336,8 @@ let of_cookie header =
              ; extension= None } )
            cookies' )
 
+let to_cookie t = Format.sprintf "%s=%s" (name t) (value t)
+
 let to_set_cookie t =
   let module O = Option in
   let buf = Buffer.create 50 in
@@ -324,8 +358,6 @@ let to_set_cookie t =
     t.same_site ;
   O.iter (fun extension -> add_str "; %s" extension) (extension t) ;
   Buffer.contents buf
-
-let to_cookie t = Format.sprintf "%s=%s" (name t) (value t)
 
 (* Updates. *)
 let update_value value cookie =
@@ -357,33 +389,3 @@ let update_same_site same_site cookie = {cookie with same_site}
 let update_extension extension cookie =
   let+ extension = parse_extension_value extension in
   {cookie with extension}
-
-(* Date time *)
-
-let compare_date_time (dt1 : date_time) (dt2 : date_time) =
-  Stdlib.compare dt1 dt2
-
-let date_time ~year ~month ~weekday ~day_of_month ~hour ~minutes ~seconds =
-  let* year =
-    if year > 0 && year < 9999 then Ok year
-    else Error (Format.sprintf "Invalid year (>0 && < 9999): %d" year)
-  in
-  let* day_of_month =
-    if day_of_month > 0 && day_of_month <= 31 then Ok day_of_month
-    else
-      Error
-        (Format.sprintf "Invalid day of month ( > 0 && <= 31): %d" day_of_month)
-  in
-  let* hour =
-    if hour > 0 && hour < 24 then Ok hour
-    else Error (Format.sprintf "Invalid hour (>0 && <24): %d" hour)
-  in
-  let* minutes =
-    if minutes >= 0 && minutes < 60 then Ok minutes
-    else Error (Format.sprintf "Invalid minutes (>=0 && < 60): %d" minutes)
-  in
-  let* seconds =
-    if seconds >= 0 && seconds < 60 then Ok seconds
-    else Error (Format.sprintf "Invalid seconds (>=0 && < 60): %d" seconds)
-  in
-  Ok {year; month; weekday; day_of_month; hour; minutes; seconds}
