@@ -10,6 +10,8 @@
 
 exception Cookie of string
 
+let ( let* ) r f = Result.bind r f
+
 type t =
   { name: string
   ; value: string
@@ -120,34 +122,41 @@ let same_site_to_string ss = to_string pp_same_site ss
 let compare_date_time (dt1 : date_time) (dt2 : date_time) =
   Stdlib.compare dt1 dt2
 
-let err fmt = Format.ksprintf (fun s -> raise (Cookie s)) fmt
-
 let date_time ~year ~month ~weekday ~day_of_month ~hour ~minutes ~seconds =
-  let year =
-    if year > 0 && year < 9999 then year
-    else err "Invalid year (>0 && < 9999): %d" year
+  let* year =
+    if year > 0 && year < 9999 then Ok year
+    else Error (Format.sprintf "Invalid year (>0 && < 9999): %d" year)
   in
-  let day_of_month =
-    if day_of_month > 0 && day_of_month <= 31 then day_of_month
-    else err "Invalid day of month ( > 0 && <= 31): %d" day_of_month
+  let* day_of_month =
+    if day_of_month > 0 && day_of_month <= 31 then Ok day_of_month
+    else
+      Error
+        (Format.sprintf "Invalid day of month ( > 0 && <= 31): %d" day_of_month)
   in
-  let hour =
-    if hour > 0 && hour < 24 then hour
-    else err "Invalid hour (>0 && <24): %d" hour
+  let* hour =
+    if hour > 0 && hour < 24 then Ok hour
+    else Error (Format.sprintf "Invalid hour (>0 && <24): %d" hour)
   in
-  let minutes =
-    if minutes >= 0 && minutes < 60 then minutes
-    else err "Invalid minutes (>=0 && < 60): %d" minutes
+  let* minutes =
+    if minutes >= 0 && minutes < 60 then Ok minutes
+    else Error (Format.sprintf "Invalid minutes (>=0 && < 60): %d" minutes)
   in
-  let seconds =
-    if seconds >= 0 && seconds < 60 then seconds
-    else err "Invalid seconds (>=0 && < 60): %d" seconds
+  let* seconds =
+    if seconds >= 0 && seconds < 60 then Ok seconds
+    else Error (Format.sprintf "Invalid seconds (>=0 && < 60): %d" seconds)
   in
-  {year; month; weekday; day_of_month; hour; minutes; seconds}
+  Ok {year; month; weekday; day_of_month; hour; minutes; seconds}
 
 let is_control_char c =
   let code = Char.code c in
   (code >= 0 && code <= 31) || code = 127
+
+let trap_exn f =
+  try Ok (f ()) with
+  | Cookie s -> Error s
+  | exn -> Error (Printexc.to_string exn)
+
+let err fmt = Format.ksprintf (fun s -> raise (Cookie s)) fmt
 
 (* Parses cookie attribute value. Cookie attribute values shouldn't contain any
    CTL(control characters) or ';' char. *)
@@ -307,22 +316,23 @@ let parse_max_age max_age =
 
 let create ?path ?domain ?expires ?max_age ?secure ?http_only ?same_site
     ?extension name ~value =
-  let name = parse_name name in
-  let value = parse_value value in
-  let domain = parse_domain_av domain in
-  let path = parse_path path in
-  let max_age = parse_max_age max_age in
-  let extension = parse_extension extension in
-  { name
-  ; value
-  ; path
-  ; domain
-  ; expires
-  ; max_age
-  ; secure
-  ; http_only
-  ; same_site
-  ; extension }
+  trap_exn (fun () ->
+      let name = parse_name name in
+      let value = parse_value value in
+      let domain = parse_domain_av domain in
+      let path = parse_path path in
+      let max_age = parse_max_age max_age in
+      let extension = parse_extension extension in
+      { name
+      ; value
+      ; path
+      ; domain
+      ; expires
+      ; max_age
+      ; secure
+      ; http_only
+      ; same_site
+      ; extension } )
 
 (* https://datatracker.ietf.org/doc/html/rfc6265#section-4.2.1
 
@@ -361,11 +371,12 @@ let of_cookie header =
   let cookie_string = sep_by1 (char ';' *> char '\x20') cookie_pair in
   let ows = skip_while (function '\x20' | '\t' -> true | _ -> false) in
   let cookies = ows *> cookie_string <* ows in
-  parse_string ~consume:All cookies header
+  trap_exn (fun () -> parse_string ~consume:All cookies header)
+  |> Result.join
   |> Result.map (fun cookies' ->
          List.map
            (fun (cookie_name', cookie_value') ->
-             create cookie_name' ~value:cookie_value' )
+             Result.get_ok @@ create cookie_name' ~value:cookie_value' )
            cookies' )
 
 let to_set_cookie t =

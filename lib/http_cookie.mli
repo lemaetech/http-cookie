@@ -56,10 +56,9 @@ val date_time :
   -> hour:int (** 24 hour format *)
   -> minutes:int
   -> seconds:int
-  -> date_time
-(** [date_time] is [dt] if all of the given parameters are valid for creating
-    {!type:date_time} value, otherwise [Cookie] exception is raised if any of
-    the arguments are invalid. *)
+  -> (date_time, string) result
+(** [date_time] is [Ok dt] if all of the given parameters are valid for creating
+    {!type:date_time} value, otherwise [Error err] is denotes the error. *)
 
 val create :
      ?path:string
@@ -72,7 +71,7 @@ val create :
   -> ?extension:string
   -> string
   -> value:string
-  -> t
+  -> (t, string) result
 (** [create ~path ~domain ~expires ~max_age ~secure ~http_only ~same_site ~extension name
     ~value]
     returns a cookie instance {!type:t} with cookie name [name] and value
