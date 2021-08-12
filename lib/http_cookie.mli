@@ -23,21 +23,11 @@
 
 (** {1 Types} *)
 
-(** Represents 'Same-site' cookie attribute. See
-    https://tools.ietf.org/html/draft-ietf-httpbis-cookie-same-site-00. *)
-module Same_site : sig
-  type t = Default | None | Lax | Strict
-
-  val equal : t -> t -> bool
-  val compare : t -> t -> int
-  val to_string : t -> string
-end
-
 (** Represents a cookie name-value in [Cookie] request header or a set of cookie
     attributes in [Set-Cookie] response header. *)
 type t
 
-type date_time =
+and date_time =
   { year: int  (** Four digit year value, e.g. 2020, 2019, 1980 etc. *)
   ; month: int  (** Begins from 0, i.e. January = 0. *)
   ; weekday: [`Sun | `Mon | `Tue | `Wed | `Thu | `Fri | `Sat]
@@ -45,6 +35,10 @@ type date_time =
   ; hour: int  (** 24 hour value from 0-23 *)
   ; minutes: int  (** Minutes value from 0 - 59*)
   ; seconds: int  (** Seconds value from 0 - 60 *) }
+
+(** Represents 'Same-site' cookie attribute. See
+    https://tools.ietf.org/html/draft-ietf-httpbis-cookie-same-site-00. *)
+and same_site = [`None | `Lax | `Strict]
 
 exception Cookie of string
 
@@ -57,7 +51,7 @@ val create :
   -> ?max_age:int
   -> ?secure:bool
   -> ?http_only:bool
-  -> ?same_site:Same_site.t
+  -> ?same_site:same_site
   -> ?extension:string
   -> string
   -> value:string
@@ -69,19 +63,20 @@ val create :
 
     @raise Cookie if any of the cookie attributes fail validation. *)
 
-val of_cookie_header : string -> t list
-(** [of_cookie_header s] parses [s] - a string value which represents HTTP
+val of_cookie : string -> (t list, string) result
+(** [of_cookie header] parses [header] - a string value which represents HTTP
     [Cookie] header value as defined in
-    {:https://tools.ietf.org/html/rfc6265#section-4.2} and returns a list of
-    [Cookie]s.
+    {:https://tools.ietf.org/html/rfc6265#section-4.2}. It returns a list of
+    [Cookie]s if it is able to successfully parse [s], otherwise it returns
+    [Error err].
 
     {4 Examples}
 
     This returns two cookies with cookie names [SID] and [lang-en].
 
-    {[ Http_cookie.of_cookie_header "SID=31d4d96e407aad42; lang=en-US" ]} *)
+    {[ Http_cookie.of_cookie "SID=31d4d96e407aad42; lang=en-US" ]} *)
 
-val to_set_cookie_header_value : t -> string
+val to_set_cookie : t -> string
 (** [to_set_header c] serializes cookie [c] into a string which can be encoded
     as value for HTTP [Set-Cookie] header.
 
@@ -94,9 +89,9 @@ val to_set_cookie_header_value : t -> string
 SID=31d4d96e407aad42; Path=/; Secure; HttpOnly; Expires=Sun, 06 Nov 1994 08:49:37 GMT
     v} *)
 
-val to_cookie_header_value : t -> string
-(** [to_cookie_header c] serializes [c] into a string which can be encoded as
-    value for HTTP [Cookie] header.
+val to_cookie : t -> string
+(** [to_cookie c] serializes [c] into a string which can be encoded as value for
+    HTTP [Cookie] header.
 
     Example of a string returned by the function.
 
@@ -148,7 +143,7 @@ val http_only : t -> bool option
 
     See {{:https://tools.ietf.org/html/rfc6265#section-4.1.2.6} http-only} *)
 
-val same_site : t -> Same_site.t option
+val same_site : t -> same_site option
 (** [same_site t] returns a same_site attribute.
 
     See {{:https://tools.ietf.org/html/draft-ietf-httpbis-cookie-same-site-00}
@@ -176,5 +171,11 @@ val update_expires : date_time option -> t -> t
 val update_max_age : int option -> t -> t
 val update_secure : bool option -> t -> t
 val update_http_only : bool option -> t -> t
-val update_same_site : Same_site.t option -> t -> t
+val update_same_site : same_site option -> t -> t
 val update_extension : string option -> t -> t
+
+(** {1 Pretty Printer} *)
+
+val pp : Format.formatter -> t -> unit
+val pp_date_time : Format.formatter -> date_time -> unit
+val pp_same_site : Format.formatter -> same_site -> unit

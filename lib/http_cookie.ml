@@ -7,22 +7,22 @@
  *
  * %%NAME%% %%VERSION%%
  *-------------------------------------------------------------------------*)
-module Same_site = struct
-  type t = Default | None | Lax | Strict
-
-  let compare (t1 : t) (t2 : t) = compare t1 t2
-  let equal (t1 : t) (t2 : t) = compare t1 t2 = 0
-
-  let to_string = function
-    | Default -> ""
-    | None -> "None"
-    | Lax -> "Lax"
-    | Strict -> "Strict"
-end
 
 exception Cookie of string
 
-type date_time =
+type t =
+  { name: string
+  ; value: string
+  ; path: string option
+  ; domain: string option
+  ; expires: date_time option
+  ; max_age: int option
+  ; secure: bool option
+  ; http_only: bool option
+  ; same_site: same_site option
+  ; extension: string option }
+
+and date_time =
   { year: int
   ; month: int
   ; weekday: [`Sun | `Mon | `Tue | `Wed | `Thu | `Fri | `Sat]
@@ -31,8 +31,36 @@ type date_time =
   ; minutes: int
   ; seconds: int }
 
-(** [to_rfc1123 t] converts [t] to a string in a format as defined by RFC 1123. *)
-let date_to_string (tm : date_time) =
+and same_site = [`None | `Lax | `Strict]
+
+let compare (t1 : t) (t2 : t) = compare t1 t2
+let name c = c.name
+let value c = c.value
+let path c = c.path
+let domain c = c.domain
+let expires c = c.expires
+let max_age c = c.max_age
+let extension c = c.extension
+let same_site c = c.same_site
+let http_only c = c.http_only
+let secure c = c.secure
+
+let rec pp fmt' t =
+  let fields =
+    [ Fmt.field "name" (fun p -> p.name) Fmt.string
+    ; Fmt.field "value" (fun p -> p.value) Fmt.string
+    ; Fmt.field "path" (fun p -> p.path) Fmt.(option string)
+    ; Fmt.field "domain" (fun p -> p.domain) Fmt.(option string)
+    ; Fmt.field "expires" (fun p -> p.expires) Fmt.(option pp_date_time)
+    ; Fmt.field "max_age" (fun p -> p.max_age) Fmt.(option int)
+    ; Fmt.field "secure" (fun p -> p.secure) Fmt.(option bool)
+    ; Fmt.field "http_only" (fun p -> p.http_only) Fmt.(option bool)
+    ; Fmt.field "same_site" (fun p -> p.same_site) Fmt.(option pp_same_site)
+    ; Fmt.field "extension" (fun p -> p.extension) Fmt.(option string) ]
+  in
+  Fmt.record fields fmt' t
+
+and pp_date_time fmt tm =
   let weekday =
     match tm.weekday with
     | `Sun -> "Sun"
@@ -59,32 +87,22 @@ let date_to_string (tm : date_time) =
     | 11 -> "Dec"
     | m -> raise (Cookie (Format.sprintf "Invalid date time. month is %d" m))
   in
-  Printf.sprintf "%s, %02d %s %04d %02d:%02d:%02d GMT" weekday tm.day_of_month
-    month tm.year tm.hour tm.minutes tm.seconds
+  Format.fprintf fmt "%s, %02d %s %04d %02d:%02d:%02d GMT" weekday
+    tm.day_of_month month tm.year tm.hour tm.minutes tm.seconds
 
-type t =
-  { name: string
-  ; value: string
-  ; path: string option
-  ; domain: string option
-  ; expires: date_time option
-  ; max_age: int option
-  ; secure: bool option
-  ; http_only: bool option
-  ; same_site: Same_site.t option
-  ; extension: string option }
+and pp_same_site fmt = function
+  | `None -> Format.fprintf fmt "None"
+  | `Lax -> Format.fprintf fmt "Lax"
+  | `Strict -> Format.fprintf fmt "Strict"
 
-let compare {name= name1; _} {name= name2; _} = String.compare name1 name2
-let name c = c.name
-let value c = c.value
-let path c = c.path
-let domain c = c.domain
-let expires c = c.expires
-let max_age c = c.max_age
-let extension c = c.extension
-let same_site c = c.same_site
-let http_only c = c.http_only
-let secure c = c.secure
+and to_string pp t =
+  let buf = Buffer.create 0 in
+  let fmt = Format.formatter_of_buffer buf in
+  Format.fprintf fmt "%a%!" pp t ;
+  Buffer.contents buf
+
+let date_to_string tm = to_string pp_date_time tm
+let same_site_to_string ss = to_string pp_same_site ss
 
 let is_control_char c =
   let code = Char.code c in
@@ -267,20 +285,50 @@ let create ?path ?domain ?expires ?max_age ?secure ?http_only ?same_site
   ; same_site
   ; extension }
 
-let of_cookie_header header =
-  String.split_on_char ';' header
-  |> List.filter_map (fun s ->
-         let s = String.trim s in
-         if String.length s > 0 then Some s else None )
-  |> List.filter_map (fun cookie ->
-         try
-           let cookie_items = String.split_on_char '=' cookie in
-           let name = List.nth cookie_items 0
-           and value = List.nth cookie_items 1 in
-           Some (create name ~value)
-         with Failure _ | Invalid_argument _ -> None )
+(* https://datatracker.ietf.org/doc/html/rfc6265#section-4.2.1
 
-let to_set_cookie_header_value t =
+   cookie-header = "Cookie:" OWS cookie-string OWS
+   cookie-string = cookie-pair *( ";" SP cookie-pair )
+*)
+let of_cookie header =
+  let open Angstrom in
+  let token =
+    take_while1 (function
+      | '\x00' .. '\x1F' | '\x7F' -> false (* CONTROL chars *)
+      | '(' | ')' | '<' | '>' | '@' | ',' | ';' | ':' | '\\' | '"' | '/' | '['
+       |']' | '?' | '=' | '{' | '}' | ' ' ->
+          false (* SEPARATOR chars *)
+      | _ -> true )
+  in
+  let cookie_name = token in
+  let cookie_octet = function
+    | '\x21'
+     |'\x23' .. '\x2B'
+     |'\x2D' .. '\x3A'
+     |'\x3C' .. '\x5B'
+     |'\x5D' .. '\x7E' ->
+        true
+    | _ -> false
+  in
+  let cookie_value =
+    take_while cookie_octet <|> (char '"' *> take_while cookie_octet <* char '"')
+  in
+  let cookie_pair =
+    lift3
+      (fun cookie_name' _ cookie_value' -> (cookie_name', cookie_value'))
+      cookie_name (char '=') cookie_value
+  in
+  let cookie_string = sep_by1 (char ';' *> char '\x20') cookie_pair in
+  let ows = skip_many (char '\x20' <|> char '\t') in
+  let cookies = ows *> cookie_string <* ows in
+  parse_string ~consume:All cookies header
+  |> Result.map (fun cookies' ->
+         List.map
+           (fun (cookie_name', cookie_value') ->
+             create cookie_name' ~value:cookie_value' )
+           cookies' )
+
+let to_set_cookie t =
   let module O = Option in
   let buf = Buffer.create 50 in
   let add_str fmt = Format.ksprintf (Buffer.add_string buf) fmt in
@@ -296,14 +344,12 @@ let to_set_cookie_header_value t =
   O.iter (fun secure -> if secure then add_str "; Secure") t.secure ;
   O.iter (fun http_only -> if http_only then add_str "; HttpOnly") t.http_only ;
   O.iter
-    (fun same_site ->
-      if Same_site.(equal Default same_site) then add_str "; SameSite"
-      else add_str "; SameSite=%s" (Same_site.to_string same_site) )
+    (fun same_site -> add_str "; SameSite=%s" (same_site_to_string same_site))
     t.same_site ;
   O.iter (fun extension -> add_str "; %s" extension) (extension t) ;
   Buffer.contents buf
 
-let to_cookie_header_value t = Format.sprintf "%s=%s" (name t) (value t)
+let to_cookie t = Format.sprintf "%s=%s" (name t) (value t)
 
 (* Updates. *)
 let update_value v c = {c with value= parse_value v}
