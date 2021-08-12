@@ -1,8 +1,8 @@
-(lang dune 2.7)
+(lang dune 2.9)
 
 (name http-cookie)
 
-(version 3.1.0)
+(version 4.0.0)
 
 (generate_opam_files true)
 
@@ -22,4 +22,9 @@
   "OCaml library to manipulate HTTP cookie. Adheres to RFC 6265.")
  (depends
   (ocaml
-   (>= 4.10.0))))
+   (>= 4.10.0))
+  (fmt
+   (>= 0.8.9))
+  (angstrom
+   (>= 0.15.0))
+  (ppx_expect :with-test)))
