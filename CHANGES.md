@@ -8,7 +8,8 @@
 - [BREAKING-CHANGE] make `date_time` type abstract
 - [BREAKING-CHANGE] `to_set_cookie_header_value` has been removed. Use `to_set_cookie` instead.
 - [BREAKING-CHANGE] `to_cookie_header_value` has been removed. Use `to_cookie` instead.
-- [BREAKINg-CHANGE] `of_cookie_header` has been removed, Use`of_cookie` instead.
+- [BREAKING-CHANGE] `of_cookie_header` has been removed, Use`of_cookie` instead.
+- [BREAKING-CHANGE] remove `Cookie` exception. The library is now exception less, i.e. uses `result` type to denote error scenarios.
 
 ## v3.1.0 2021-08-11 
 
