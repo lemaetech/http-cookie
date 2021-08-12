@@ -31,7 +31,7 @@ and date_time
     https://tools.ietf.org/html/draft-ietf-httpbis-cookie-same-site-00. *)
 and same_site = [`None | `Lax | `Strict]
 
-(** {1 Http_cookie} *)
+(** {1 Create/Decode/Encode} *)
 
 val date_time :
      year:int
