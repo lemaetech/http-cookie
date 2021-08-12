@@ -361,7 +361,7 @@ let of_cookie header =
       cookie_name (char '=') cookie_value
   in
   let cookie_string = sep_by1 (char ';' *> char '\x20') cookie_pair in
-  let ows = skip_many (char '\x20' <|> char '\t') in
+  let ows = skip_while (function '\x20' | '\t' -> true | _ -> false) in
   let cookies = ows *> cookie_string <* ows in
   parse_string ~consume:All cookies header
   |> Result.map (fun cookies' ->
