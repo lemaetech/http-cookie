@@ -201,8 +201,6 @@ let cookie_pair =
   let+ value = char '=' *> cookie_value in
   (name, value)
 
-let _ows = skip_while (function '\x20' | '\t' -> true | _ -> false)
-
 (* Domain attribute value:
 
     domain-value      = <subdomain>
