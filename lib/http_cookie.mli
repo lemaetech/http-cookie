@@ -41,7 +41,7 @@ val pp_date_time : Format.formatter -> date_time -> unit
 (** [pp_date_time fmt date_time] pretty prints {!type:date_time} in RFC 1123
     format.
 
-    An example of date time printed:
+    Example:
 
     {[ Sun, 06 Nov 1994 08:49:37 GMT ]} *)
 
