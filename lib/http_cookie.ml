@@ -57,7 +57,7 @@ let rec pp fmt' t =
     ; Fmt.field "same_site" (fun p -> p.same_site) Fmt.(option pp_same_site)
     ; Fmt.field "extension" (fun p -> p.extension) Fmt.(option string) ]
   in
-  Fmt.record fields fmt' t
+  Fmt.(vbox (record fields) fmt' t)
 
 and pp_date_time fmt tm =
   let weekday =
