@@ -24,12 +24,28 @@
 (** A HTTP cookie. *)
 type t
 
-(** Date time value. *)
+(** normalized date time value in GMT. *)
 and date_time
 
-(** 'Same-site' cookie attribute. See
-    https://tools.ietf.org/html/draft-ietf-httpbis-cookie-same-site-00. *)
+(** 'Same-site' cookie attribute.
+    {{:https://tools.ietf.org/html/draft-ietf-httpbis-cookie-same-site-00}
+    Same-site} *)
 and same_site = [`None | `Lax | `Strict]
+
+(** HTTP date-time values. The timezone is GMT.
+    {{:https://datatracker.ietf.org/doc/html/rfc2616#section-3.3.1} RFC 2616} *)
+and http_date = private
+  | RFC_1123 of {wkday: string; day: int; month: string; year: int; time: time}
+  | RFC_850 of
+      { weekday: string
+      ; day: int
+      ; month: string
+      ; year: int  (** 2 digit year. *)
+      ; time: time }
+  | ASCTIME of {wkday: string; day: int; month: string; year: int; time: time}
+
+(** time component of {!type:http_date} *)
+and time = {hh: int  (** Hour*); mm: int  (** Minutes*); ss: int  (** Seconds*)}
 
 (** {1 Pretty Printers} *)
 
@@ -201,3 +217,17 @@ val update_secure : bool option -> t -> t
 val update_http_only : bool option -> t -> t
 val update_same_site : same_site option -> t -> t
 val update_extension : string option -> t -> (t, string) result
+
+(** {1 HTTP date}
+
+    HTTP date formats are defined at
+    https://datatracker.ietf.org/doc/html/rfc7231#section-7.1.1.1
+
+    All three formats are supported:
+
+    - RFC 1123/RFC 5322
+      (https://datatracker.ietf.org/doc/html/rfc5322#section-3.3)
+    - RFC 850 (obsolete)
+    - Asctime date format (obsolete) *)
+
+val http_date : string -> (http_date, string) result

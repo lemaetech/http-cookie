@@ -43,6 +43,13 @@ and date_time =
 
 and same_site = [`None | `Lax | `Strict]
 
+and http_date =
+  | RFC_1123 of {wkday: string; day: int; month: string; year: int; time: time}
+  | RFC_850 of {weekday: string; day: int; month: string; year: int; time: time}
+  | ASCTIME of {wkday: string; day: int; month: string; year: int; time: time}
+
+and time = {hh: int; mm: int; ss: int}
+
 (* Pretty Printers *)
 let rec pp fmt' t =
   let fields =
@@ -175,13 +182,6 @@ let cookie_pair =
 
 let _ows = skip_while (function '\x20' | '\t' -> true | _ -> false)
 
-(* https://datatracker.ietf.org/doc/html/rfc6265#section-4.2.1
-
-   cookie-header = "Cookie:" OWS cookie-string OWS
-   cookie-string = cookie-pair *( ";" SP cookie-pair )
-*)
-let cookie_string = sep_by1 (char ';' *> char '\x20') cookie_pair
-
 (* Domain attribute value:
 
     domain-value      = <subdomain>
@@ -199,12 +199,13 @@ let cookie_string = sep_by1 (char ';' *> char '\x20') cookie_pair
     <digit> ::= any one of the ten digits 0 through 9
 *)
 let string_of_list l = List.to_seq l |> String.of_seq
+let is_digit = function '0' .. '9' -> true | _ -> false
+let is_letter = function 'a' .. 'z' | 'A' .. 'Z' -> true | _ -> false
+let digit = satisfy is_digit
+let letter = satisfy is_letter
+let space = char ' '
 
 let domain_value =
-  let is_digit = function '0' .. '9' -> true | _ -> false in
-  let is_letter = function 'a' .. 'z' | 'A' .. 'Z' -> true | _ -> false in
-  let digit = satisfy is_digit in
-  let letter = satisfy is_letter in
   let let_dig = letter <|> digit in
   let let_dig_hyp = let_dig <|> char '-' in
   let ldh_str = many1 let_dig_hyp in
@@ -246,14 +247,164 @@ let domain_value =
   if len > 255 then fail "Domain attribute length exceeds 255 characters"
   else return (String.concat "." subdomain)
 
-let cookie_av =
+let cookie_attr_value =
   take_while1 (function
     | '\x00' .. '\x1F' | '\x7F' -> false (* CONTROL chars *)
     | ';' -> false
     | _ -> true )
 
-let path_value = cookie_av
-let extension_value = cookie_av
+let path_value = cookie_attr_value
+let extension_value = cookie_attr_value
+
+(* https://datatracker.ietf.org/doc/html/rfc7231#section-7.1.1.1
+
+   HTTP-date    = rfc1123-date | rfc850-date | asctime-date
+   rfc1123-date = wkday "," SP date1 SP time SP "GMT"
+   rfc850-date  = weekday "," SP date2 SP time SP "GMT"
+   asctime-date = wkday SP date3 SP time SP 4DIGIT
+   date1        = 2DIGIT SP month SP 4DIGIT
+                 ; day month year (e.g., 02 Jun 1982)
+   date2        = 2DIGIT "-" month "-" 2DIGIT
+                 ; day-month-year (e.g., 02-Jun-82)
+   date3        = month SP ( 2DIGIT | ( SP 1DIGIT ))
+                 ; month day (e.g., Jun  2)
+   time         = 2DIGIT ":" 2DIGIT ":" 2DIGIT
+                 ; 00:00:00 - 23:59:59
+   wkday        = "Mon" | "Tue" | "Wed"
+               | "Thu" | "Fri" | "Sat" | "Sun"
+   weekday      = "Monday" | "Tuesday" | "Wednesday"
+               | "Thursday" | "Friday" | "Saturday" | "Sunday"
+   month        = "Jan" | "Feb" | "Mar" | "Apr"
+               | "May" | "Jun" | "Jul" | "Aug"
+               | "Sep" | "Oct" | "Nov" | "Dec"
+*)
+let http_date' =
+  let weekday =
+    string "Monday" <|> string "Tuesday" <|> string "Wednesday"
+    <|> string "Thursday" <|> string "Friday" <|> string "Saturday"
+    <|> string "Sunday"
+  in
+  let wkday =
+    string "Mon" <|> string "Tue" <|> string "Wed" <|> string "Thu"
+    <|> string "Fri" <|> string "Sat" <|> string "Sun"
+  in
+  let digits count =
+    let+ digits = list @@ List.init count (fun _ -> digit) in
+    int_of_string (string_of_list digits)
+  in
+  let time =
+    let* hh =
+      digits 2 <* char ':'
+      >>= fun hour ->
+      if hour >= 0 && hour < 24 then return hour
+      else
+        fail
+        @@ Format.sprintf
+             "Invalid hour value: %d. Hour must be in between 0 and 23 \
+              inclusive"
+             hour
+    in
+    let* mm =
+      digits 2 <* char ':'
+      >>= fun minutes ->
+      if minutes >= 0 && minutes <= 59 then return minutes
+      else
+        fail
+        @@ Format.sprintf
+             "Invalid minutes value: %d. Minutes must be in between 0 and 59 \
+              inclusive"
+             minutes
+    in
+    let+ ss =
+      digits 2
+      >>= fun seconds ->
+      if seconds >= 0 && seconds <= 59 then return seconds
+      else
+        fail
+        @@ Format.sprintf
+             "Invalid seconds value: %d. Seconds must be in between 0 and 59 \
+              inclusive"
+             seconds
+    in
+    {hh; mm; ss}
+  in
+  let month =
+    string "Jan" <|> string "Feb" <|> string "Mar" <|> string "Apr"
+    <|> string "May" <|> string "Jun" <|> string "Jul" <|> string "Aug"
+    <|> string "Sep" <|> string "Oct" <|> string "Nov" <|> string "Dec"
+  in
+  (* (* canonical year according to steps 3 and 4 in*)
+     (*    https://datatracker.ietf.org/doc/html/rfc6265#section-5.1.1*)
+     (* *)*)
+  (* let canonical_year year =*)
+  (*   let year =*)
+  (*     if is_canonical_year then*)
+  (*       if year >= 70 && year <= 99 then year + 1900*)
+  (*       else if year >= 0 && year <= 69 then year + 2000*)
+  (*       else year*)
+  (*     else year*)
+  (*   in*)
+  (*   if year < 1601 then*)
+  (*     fail (Format.sprintf "Invalid year: %d. Year is less than 1601" year)*)
+  (*   else return year*)
+  (* in*)
+  let day_of_month day =
+    if day >= 1 && day <= 31 then return day
+    else
+      fail
+        (Format.sprintf
+           "Invalid day of month: %d. Day of month must be in between 1 and 31 \
+            inclusive."
+           day )
+  in
+  let date1 =
+    let* day = digits 2 <* space >>= day_of_month in
+    let* month = month <* space in
+    let+ year = digits 4 in
+    (day, month, year)
+  in
+  let date2 =
+    let* day = digits 2 <* char '-' >>= day_of_month in
+    let* month = month <* char '-' in
+    let+ year = digits 2 in
+    (day, month, year)
+  in
+  let date3 =
+    let* month = month <* char ' ' in
+    let+ day = digits 2 <|> digits 1 >>= day_of_month in
+    (month, day)
+  in
+  let rfc1123_date =
+    let* wkday = wkday <* char ',' *> space in
+    let* day, month, year = date1 <* space in
+    let+ time = time <* space *> string "GMT" in
+    RFC_1123 {wkday; day; month; year; time}
+  in
+  let rfc850_date =
+    let* weekday = weekday <* char ',' *> space in
+    let* day, month, year = date2 <* space in
+    let+ time = time <* space *> string "GMT" in
+    RFC_850 {weekday; day; month; year; time}
+  in
+  let asctime_date =
+    let* wkday = wkday <* space in
+    let* month, day = date3 <* space in
+    let* time = time <* space in
+    let+ year = digits 4 in
+    ASCTIME {wkday; day; month; year; time}
+  in
+  rfc1123_date <|> rfc850_date <|> asctime_date
+
+let _cookie_av =
+  let expires_av = string_ci "Expires=" in
+  expires_av
+
+(* https://datatracker.ietf.org/doc/html/rfc6265#section-4.2.1
+
+   cookie-header = "Cookie:" OWS cookie-string OWS
+   cookie-string = cookie-pair *( ";" SP cookie-pair )
+*)
+let cookie_string = sep_by1 (char ';' *> char '\x20') cookie_pair
 let parse_name name = parse_string ~consume:Consume.All cookie_name name
 let parse_value value = parse_string ~consume:Consume.All cookie_value value
 
@@ -401,3 +552,7 @@ let update_same_site same_site cookie = {cookie with same_site}
 let update_extension extension cookie =
   let+ extension = parse extension_value extension in
   {cookie with extension}
+
+(* HTTP date *)
+
+let http_date date = parse_string ~consume:Consume.All http_date' date
