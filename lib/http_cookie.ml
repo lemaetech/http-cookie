@@ -182,7 +182,7 @@ let token =
         false (* SEPARATOR chars *)
     | _ -> true )
 
-let cookie_name = token
+let cookie_name = token <?> "cookie_name"
 
 let cookie_value =
   let cookie_octet = function
@@ -194,12 +194,15 @@ let cookie_value =
         true
     | _ -> false
   in
-  take_while cookie_octet <|> (char '"' *> take_while cookie_octet <* char '"')
+  take_while cookie_octet
+  <|> (char '"' *> take_while cookie_octet <* char '"')
+  <?> "cookie_value"
 
 let cookie_pair =
-  let* name = cookie_name in
-  let+ value = char '=' *> cookie_value in
-  (name, value)
+  (let* name = cookie_name in
+   let+ value = char '=' *> cookie_value in
+   (name, value) )
+  <?> "cookie_pair"
 
 (* Domain attribute value:
 
@@ -266,11 +269,12 @@ let domain_value =
   let* subdomain = subdomain in
   let* end_pos = pos in
   let len = end_pos - start_pos in
-  if len > 255 then
+  ( if len > 255 then
     fail
       (Format.sprintf "[%s] Domain attribute length exceeds 255 characters"
          __LOC__ )
-  else return (String.concat "." subdomain)
+  else return (String.concat "." subdomain) )
+  <?> "domain_value"
 
 let cookie_attr_value =
   take_while1 (function
@@ -278,8 +282,8 @@ let cookie_attr_value =
     | ';' -> false
     | _ -> true )
 
-let path_value = cookie_attr_value
-let extension_value = cookie_attr_value
+let path_value = cookie_attr_value <?> "path_value"
+let extension_value = cookie_attr_value <?> "extension_value"
 
 (* https://datatracker.ietf.org/doc/html/rfc7231#section-7.1.1.1
 
@@ -319,7 +323,7 @@ let http_date =
     try return (int_of_string digits)
     with exn ->
       fail
-        (Format.sprintf "Invalid integer value:%s. %s" digits
+        (Format.sprintf "[%s] Invalid integer value:%s. %s" __LOC__ digits
            (Printexc.to_string exn) )
   in
   let time =
@@ -423,18 +427,19 @@ let http_date =
     let+ year = digits 4 >>= canonical_year in
     {weekday; day; month; year; hour; minutes; seconds}
   in
-  rfc1123_date <|> rfc850_date <|> asctime_date
+  rfc1123_date <|> rfc850_date <|> asctime_date <?> "http_date"
 
 let max_age_value =
   let non_zero_digit = satisfy (function '1' .. '9' -> true | _ -> false) in
   let* first_char = non_zero_digit in
   let* digits = take_while is_digit in
   let max_age = Format.sprintf "%c%s" first_char digits in
-  try return (Int64.of_string max_age)
-  with exn ->
-    fail
-      (Format.sprintf "[%s] Invalid max_age value:%s. %s" __LOC__ max_age
-         (Printexc.to_string exn) )
+  ( try return (Int64.of_string max_age)
+    with exn ->
+      fail
+        (Format.sprintf "[%s] Invalid max_age value:%s. %s" __LOC__ max_age
+           (Printexc.to_string exn) ) )
+  <?> "max_age_value"
 
 let cookie_av =
   let expires_av =
@@ -451,7 +456,7 @@ let cookie_av =
   let httponly_av = string "HttpOnly" *> return `Http_only in
   let extension_av = extension_value >>| fun v -> `Extension (Some v) in
   expires_av <|> max_age_av <|> domain_av <|> path_av <|> secure_av
-  <|> httponly_av <|> extension_av
+  <|> httponly_av <|> extension_av <?> "cookie_av"
 
 let set_cookie_string =
   let* name, value = cookie_pair in
