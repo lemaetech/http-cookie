@@ -14,9 +14,9 @@ type t =
   ; path: string option
   ; domain: string option
   ; expires: date_time option
-  ; max_age: int option
-  ; secure: bool option
-  ; http_only: bool option
+  ; max_age: int64 option
+  ; secure: bool
+  ; http_only: bool
   ; same_site: same_site option
   ; extension: string option }
 
@@ -36,19 +36,12 @@ and date_time =
       | `Nov
       | `Dec ]
   ; weekday: [`Sun | `Mon | `Tue | `Wed | `Thu | `Fri | `Sat]
-  ; day_of_month: int
+  ; day: int
   ; hour: int
   ; minutes: int
   ; seconds: int }
 
 and same_site = [`None | `Lax | `Strict]
-
-and http_date =
-  | RFC_1123 of {wkday: string; day: int; month: string; year: int; time: time}
-  | RFC_850 of {weekday: string; day: int; month: string; year: int; time: time}
-  | ASCTIME of {wkday: string; day: int; month: string; year: int; time: time}
-
-and time = {hh: int; mm: int; ss: int}
 
 (* Pretty Printers *)
 let rec pp fmt' t =
@@ -58,9 +51,9 @@ let rec pp fmt' t =
     ; Fmt.field "path" (fun p -> p.path) Fmt.(option string)
     ; Fmt.field "domain" (fun p -> p.domain) Fmt.(option string)
     ; Fmt.field "expires" (fun p -> p.expires) Fmt.(option pp_date_time)
-    ; Fmt.field "max_age" (fun p -> p.max_age) Fmt.(option int)
-    ; Fmt.field "secure" (fun p -> p.secure) Fmt.(option bool)
-    ; Fmt.field "http_only" (fun p -> p.http_only) Fmt.(option bool)
+    ; Fmt.field "max_age" (fun p -> p.max_age) Fmt.(option int64)
+    ; Fmt.field "secure" (fun p -> p.secure) Fmt.bool
+    ; Fmt.field "http_only" (fun p -> p.http_only) Fmt.bool
     ; Fmt.field "same_site" (fun p -> p.same_site) Fmt.(option pp_same_site)
     ; Fmt.field "extension" (fun p -> p.extension) Fmt.(option string) ]
   in
@@ -92,8 +85,8 @@ and pp_date_time fmt tm =
     | `Nov -> "Nov"
     | `Dec -> "Dec"
   in
-  Format.fprintf fmt "%s, %02d %s %04d %02d:%02d:%02d GMT" weekday
-    tm.day_of_month month tm.year tm.hour tm.minutes tm.seconds
+  Format.fprintf fmt "%s, %02d %s %04d %02d:%02d:%02d GMT" weekday tm.day month
+    tm.year tm.hour tm.minutes tm.seconds
 
 and pp_same_site fmt = function
   | `None -> Format.fprintf fmt "None"
@@ -106,8 +99,36 @@ and to_string pp t =
   Format.fprintf fmt "%a%!" pp t ;
   Buffer.contents buf
 
+let pp_rfc1123 = pp_date_time
 let date_to_string tm = to_string pp_date_time tm
 let same_site_to_string ss = to_string pp_same_site ss
+
+(* Conversion *)
+
+let to_weekday = function
+  | "Sun" | "Sunday" -> `Sun
+  | "Mon" | "Monday" -> `Mon
+  | "Tue" | "Tuesday" -> `Tue
+  | "Wed" | "Wednesday" -> `Wed
+  | "Thu" | "Thursday" -> `Thu
+  | "Fri" | "Friday" -> `Fri
+  | "Sat" | "Saturday" -> `Sat
+  | _ -> assert false
+
+let to_month = function
+  | "Jan" -> `Jan
+  | "Feb" -> `Feb
+  | "Mar" -> `Mar
+  | "Apr" -> `Apr
+  | "May" -> `May
+  | "Jun" -> `Jun
+  | "Jul" -> `Jul
+  | "Aug" -> `Aug
+  | "Sep" -> `Sep
+  | "Oct" -> `Oct
+  | "Nov" -> `Nov
+  | "Dec" -> `Dec
+  | _ -> assert false
 
 (* Compare *)
 let compare (t1 : t) (t2 : t) = Stdlib.compare t1 t2
@@ -278,7 +299,7 @@ let extension_value = cookie_attr_value
                | "May" | "Jun" | "Jul" | "Aug"
                | "Sep" | "Oct" | "Nov" | "Dec"
 *)
-let http_date' =
+let http_date =
   let weekday =
     string "Monday" <|> string "Tuesday" <|> string "Wednesday"
     <|> string "Thursday" <|> string "Friday" <|> string "Saturday"
@@ -289,8 +310,13 @@ let http_date' =
     <|> string "Fri" <|> string "Sat" <|> string "Sun"
   in
   let digits count =
-    let+ digits = list @@ List.init count (fun _ -> digit) in
-    int_of_string (string_of_list digits)
+    let* digits = list @@ List.init count (fun _ -> digit) in
+    let digits = string_of_list digits in
+    try return (int_of_string digits)
+    with exn ->
+      fail
+        (Format.sprintf "Invalid integer value:%s. %s" digits
+           (Printexc.to_string exn) )
   in
   let time =
     let* hh =
@@ -326,7 +352,7 @@ let http_date' =
               inclusive"
              seconds
     in
-    {hh; mm; ss}
+    (hh, mm, ss)
   in
   let month =
     string "Jan" <|> string "Feb" <|> string "Mar" <|> string "Apr"
@@ -336,18 +362,16 @@ let http_date' =
   (* (* canonical year according to steps 3 and 4 in*)
      (*    https://datatracker.ietf.org/doc/html/rfc6265#section-5.1.1*)
      (* *)*)
-  (* let canonical_year year =*)
-  (*   let year =*)
-  (*     if is_canonical_year then*)
-  (*       if year >= 70 && year <= 99 then year + 1900*)
-  (*       else if year >= 0 && year <= 69 then year + 2000*)
-  (*       else year*)
-  (*     else year*)
-  (*   in*)
-  (*   if year < 1601 then*)
-  (*     fail (Format.sprintf "Invalid year: %d. Year is less than 1601" year)*)
-  (*   else return year*)
-  (* in*)
+  let canonical_year year =
+    let year =
+      if year >= 70 && year <= 99 then year + 1900
+      else if year >= 0 && year <= 69 then year + 2000
+      else year
+    in
+    if year < 1601 then
+      fail (Format.sprintf "Invalid year: %d. Year is less than 1601" year)
+    else return year
+  in
   let day_of_month day =
     if day >= 1 && day <= 31 then return day
     else
@@ -359,45 +383,74 @@ let http_date' =
   in
   let date1 =
     let* day = digits 2 <* space >>= day_of_month in
-    let* month = month <* space in
-    let+ year = digits 4 in
+    let* month = month <* space >>| to_month in
+    let+ year = digits 4 >>= canonical_year in
     (day, month, year)
   in
   let date2 =
     let* day = digits 2 <* char '-' >>= day_of_month in
-    let* month = month <* char '-' in
-    let+ year = digits 2 in
+    let* month = month <* char '-' >>| to_month in
+    let+ year = digits 2 >>= canonical_year in
     (day, month, year)
   in
   let date3 =
-    let* month = month <* char ' ' in
+    let* month = month <* char ' ' >>| to_month in
     let+ day = digits 2 <|> digits 1 >>= day_of_month in
     (month, day)
   in
   let rfc1123_date =
-    let* wkday = wkday <* char ',' *> space in
+    let* weekday = wkday <* char ',' *> space >>| to_weekday in
     let* day, month, year = date1 <* space in
-    let+ time = time <* space *> string "GMT" in
-    RFC_1123 {wkday; day; month; year; time}
+    let+ hour, minutes, seconds = time <* space *> string "GMT" in
+    {weekday; day; month; year; hour; minutes; seconds}
   in
   let rfc850_date =
-    let* weekday = weekday <* char ',' *> space in
+    let* weekday = weekday <* char ',' *> space >>| to_weekday in
     let* day, month, year = date2 <* space in
-    let+ time = time <* space *> string "GMT" in
-    RFC_850 {weekday; day; month; year; time}
+    let+ hour, minutes, seconds = time <* space *> string "GMT" in
+    {weekday; day; month; year; hour; minutes; seconds}
   in
   let asctime_date =
-    let* wkday = wkday <* space in
+    let* weekday = wkday <* space >>| to_weekday in
     let* month, day = date3 <* space in
-    let* time = time <* space in
-    let+ year = digits 4 in
-    ASCTIME {wkday; day; month; year; time}
+    let* hour, minutes, seconds = time <* space in
+    let+ year = digits 4 >>= canonical_year in
+    {weekday; day; month; year; hour; minutes; seconds}
   in
   rfc1123_date <|> rfc850_date <|> asctime_date
 
-let _cookie_av =
-  let expires_av = string_ci "Expires=" in
-  expires_av
+let max_age_value =
+  let non_zero_digit = satisfy (function '1' .. '9' -> true | _ -> false) in
+  let* first_char = non_zero_digit in
+  let* digits = take_while is_digit in
+  let max_age = Format.sprintf "%c%s" first_char digits in
+  try return (Int64.of_string max_age)
+  with exn ->
+    fail
+      (Format.sprintf "Invalid max_age value:%s. %s" max_age
+         (Printexc.to_string exn) )
+
+let cookie_av =
+  let expires_av =
+    string "Expires=" *> http_date >>| fun v -> `Expires (Some v)
+  in
+  let max_age_av =
+    string "Max-Age=" *> max_age_value >>| fun v -> `Max_age (Some v)
+  in
+  let domain_av =
+    string "Domain=" *> domain_value >>| fun v -> `Domain (Some v)
+  in
+  let path_av = string "Path=" *> path_value >>| fun v -> `Path (Some v) in
+  let secure_av = string "Secure" *> return `Secure in
+  let httponly_av = string "HttpOnly" *> return `Http_only in
+  let extension_av = extension_value >>| fun v -> `Extension (Some v) in
+  expires_av <|> max_age_av <|> domain_av <|> path_av <|> secure_av
+  <|> httponly_av <|> extension_av
+
+let set_cookie_string =
+  let* name, value = cookie_pair in
+  let+ attr_values = many (char ';' *> space *> cookie_av) in
+  (name, value, attr_values)
 
 (* https://datatracker.ietf.org/doc/html/rfc6265#section-4.2.1
 
@@ -412,7 +465,7 @@ let parse_max_age max_age =
   match max_age with
   | None -> Ok None
   | Some ma ->
-      if ma <= 0 then
+      if ma <= 0L then
         Error "Cookies 'Max-Age' attribute is less than or equal to 0"
       else Ok (Some ma)
 
@@ -424,16 +477,14 @@ let parse p input =
 let ( let* ) r f = Result.bind r f
 let ( let+ ) r f = Result.map f r
 
-let date_time ~year ~month ~weekday ~day_of_month ~hour ~minutes ~seconds =
+let date_time ~year ~month ~weekday ~day ~hour ~minutes ~seconds =
   let* year =
     if year > 0 && year < 9999 then Ok year
     else Error (Format.sprintf "Invalid year (>0 && < 9999): %d" year)
   in
-  let* day_of_month =
-    if day_of_month > 0 && day_of_month <= 31 then Ok day_of_month
-    else
-      Error
-        (Format.sprintf "Invalid day of month ( > 0 && <= 31): %d" day_of_month)
+  let* day =
+    if day > 0 && day <= 31 then Ok day
+    else Error (Format.sprintf "Invalid day of month ( > 0 && <= 31): %d" day)
   in
   let* hour =
     if hour > 0 && hour < 24 then Ok hour
@@ -447,10 +498,10 @@ let date_time ~year ~month ~weekday ~day_of_month ~hour ~minutes ~seconds =
     if seconds >= 0 && seconds < 60 then Ok seconds
     else Error (Format.sprintf "Invalid seconds (>=0 && < 60): %d" seconds)
   in
-  Ok {year; month; weekday; day_of_month; hour; minutes; seconds}
+  Ok {year; month; weekday; day; hour; minutes; seconds}
 
-let create ?path ?domain ?expires ?max_age ?secure ?http_only ?same_site
-    ?extension ~name value =
+let create ?path ?domain ?expires ?max_age ?(secure = false)
+    ?(http_only = false) ?same_site ?extension ~name value =
   let* name = parse_name name in
   let* value = parse_value value in
   let* domain = parse domain_value domain in
@@ -479,8 +530,8 @@ let of_cookie header =
              ; domain= None
              ; expires= None
              ; max_age= None
-             ; secure= None
-             ; http_only= None
+             ; secure= false
+             ; http_only= false
              ; same_site= None
              ; extension= None } )
            cookies' )
@@ -498,17 +549,40 @@ let to_set_cookie t =
     (fun expires -> add_str "; Expires=%s" @@ date_to_string expires)
     t.expires ;
   O.iter
-    (fun max_age -> if max_age > 0 then add_str "; Max-Age=%d" max_age)
+    (fun max_age -> if max_age > 0L then add_str "; Max-Age=%Ld" max_age)
     t.max_age ;
-  O.iter (fun secure -> if secure then add_str "; Secure") t.secure ;
-  O.iter (fun http_only -> if http_only then add_str "; HttpOnly") t.http_only ;
+  if t.secure then add_str "; Secure" ;
+  if t.http_only then add_str "; HttpOnly" ;
   O.iter
     (fun same_site -> add_str "; SameSite=%s" (same_site_to_string same_site))
     t.same_site ;
   O.iter (fun extension -> add_str "; %s" extension) t.extension ;
   Buffer.contents buf
 
-let of_set_cookie _s = failwith "not implemented"
+let of_set_cookie set_cookie =
+  parse_string ~consume:Consume.All set_cookie_string set_cookie
+  |> Result.map (fun (name, value, attr_values) ->
+         List.fold_left
+           (fun cookie -> function
+             | `Expires expires -> {cookie with expires}
+             | `Max_age max_age -> {cookie with max_age}
+             | `Domain domain -> {cookie with domain}
+             | `Path path -> {cookie with path}
+             | `Secure -> {cookie with secure= true}
+             | `Http_only -> {cookie with http_only= true}
+             | `Extension extension -> {cookie with extension}
+             | _ -> cookie )
+           { name
+           ; value
+           ; path= None
+           ; domain= None
+           ; expires= None
+           ; max_age= None
+           ; secure= false
+           ; http_only= false
+           ; same_site= None
+           ; extension= None }
+           attr_values )
 
 (* Attributes *)
 let name c = c.name
@@ -552,7 +626,3 @@ let update_same_site same_site cookie = {cookie with same_site}
 let update_extension extension cookie =
   let+ extension = parse extension_value extension in
   {cookie with extension}
-
-(* HTTP date *)
-
-let http_date date = parse_string ~consume:Consume.All http_date' date

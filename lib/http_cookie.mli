@@ -32,26 +32,17 @@ and date_time
     Same-site} *)
 and same_site = [`None | `Lax | `Strict]
 
-(** HTTP date-time values. The timezone is GMT.
-    {{:https://datatracker.ietf.org/doc/html/rfc2616#section-3.3.1} RFC 2616} *)
-and http_date = private
-  | RFC_1123 of {wkday: string; day: int; month: string; year: int; time: time}
-  | RFC_850 of
-      { weekday: string
-      ; day: int
-      ; month: string
-      ; year: int  (** 2 digit year. *)
-      ; time: time }
-  | ASCTIME of {wkday: string; day: int; month: string; year: int; time: time}
-
-(** time component of {!type:http_date} *)
-and time = {hh: int  (** Hour*); mm: int  (** Minutes*); ss: int  (** Seconds*)}
-
 (** {1 Pretty Printers} *)
 
 val pp : Format.formatter -> t -> unit
-val pp_date_time : Format.formatter -> date_time -> unit
 val pp_same_site : Format.formatter -> same_site -> unit
+
+val pp_date_time : Format.formatter -> date_time -> unit
+(** [pp_date_time fmt date_time] pretty prints {!type:date_time} in RFC 1123
+    format. *)
+
+val pp_rfc1123 : Format.formatter -> date_time -> unit
+(** Alias of {!val:pp_date_time}. *)
 
 (** {1 Create/Decode/Encode} *)
 
@@ -71,7 +62,7 @@ val date_time :
        | `Nov
        | `Dec ]
   -> weekday:[`Sun | `Mon | `Tue | `Wed | `Thu | `Fri | `Sat]
-  -> day_of_month:int
+  -> day:int
   -> hour:int (** 24 hour format *)
   -> minutes:int
   -> seconds:int
@@ -84,7 +75,7 @@ val create :
      ?path:string
   -> ?domain:string
   -> ?expires:date_time
-  -> ?max_age:int
+  -> ?max_age:int64
   -> ?secure:bool
   -> ?http_only:bool
   -> ?same_site:same_site
@@ -134,8 +125,10 @@ SID=31d4d96e407aad42; Path=/; Secure; HttpOnly; Expires=Sun, 06 Nov 1994 08:49:3
 
 val of_set_cookie : string -> (t, string) result
 (** [of_set_cookie s] is [Ok cookie] if [s] can be parsed successfully to create
-    {!type:t}. [s] is the HTTP 'Set-Cookie' header value. The syntax for the
-    value is defined as [set-cookie-string] in
+    {!type:t}.
+
+    [s] is the HTTP 'Set-Cookie' header value. The syntax for the value is
+    defined as [set-cookie-string] in
     {{:https://datatracker.ietf.org/doc/html/rfc6265#section-4.1.1} RFC 6265,
     4.1} *)
 
@@ -169,18 +162,18 @@ val expires : t -> date_time option
 
     See {{:https://tools.ietf.org/html/rfc6265#section-4.1.2.1.} cookie-expires} *)
 
-val max_age : t -> int option
+val max_age : t -> int64 option
 (** [max_age t] returns a cookie max_age attribute.
 
     See {{:https://tools.ietf.org/html/rfc6265#section-4.1.2.2} max-age} and
     {{:https://tools.ietf.org/html/rfc6265#section-4.1.1} max-age-av} *)
 
-val secure : t -> bool option
+val secure : t -> bool
 (** [secure t] returns a secure attribute.
 
     See {{:https://tools.ietf.org/html/rfc6265#section-4.1.2.5} cookie-secure} *)
 
-val http_only : t -> bool option
+val http_only : t -> bool
 (** [http_only t] returns a http_only attribute.
 
     See {{:https://tools.ietf.org/html/rfc6265#section-4.1.2.6} http-only} *)
@@ -212,22 +205,8 @@ val update_name : string -> t -> (t, string) result
 val update_path : string option -> t -> (t, string) result
 val update_domain : string option -> t -> (t, string) result
 val update_expires : date_time option -> t -> t
-val update_max_age : int option -> t -> (t, string) result
-val update_secure : bool option -> t -> t
-val update_http_only : bool option -> t -> t
+val update_max_age : int64 option -> t -> (t, string) result
+val update_secure : bool -> t -> t
+val update_http_only : bool -> t -> t
 val update_same_site : same_site option -> t -> t
 val update_extension : string option -> t -> (t, string) result
-
-(** {1 HTTP date}
-
-    HTTP date formats are defined at
-    https://datatracker.ietf.org/doc/html/rfc7231#section-7.1.1.1
-
-    All three formats are supported:
-
-    - RFC 1123/RFC 5322
-      (https://datatracker.ietf.org/doc/html/rfc5322#section-3.3)
-    - RFC 850 (obsolete)
-    - Asctime date format (obsolete) *)
-
-val http_date : string -> (http_date, string) result
