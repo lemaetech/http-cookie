@@ -43,18 +43,6 @@ and date_time =
 
 and same_site = [`None | `Lax | `Strict]
 
-(* Attributes *)
-let name c = c.name
-let value c = c.value
-let path c = c.path
-let domain c = c.domain
-let expires c = c.expires
-let max_age c = c.max_age
-let extension c = c.extension
-let same_site c = c.same_site
-let http_only c = c.http_only
-let secure c = c.secure
-
 (* Pretty Printers *)
 let rec pp fmt' t =
   let fields =
@@ -224,7 +212,18 @@ let domain_value =
     string_of_list (first_char :: middle_chars)
   in
   let subdomain = sep_by1 (char '.') label in
-  subdomain
+  (* A cookie domain attribute value may start with a leading dot which
+     can ignored.
+
+     https://datatracker.ietf.org/doc/html/rfc6265#section-4.1.2.3
+  *)
+  let* () = option () (char '.' *> return ()) in
+  let* start_pos = pos in
+  let* subdomain = subdomain in
+  let* end_pos = pos in
+  let len = end_pos - start_pos in
+  if len > 255 then fail "Domain attribute length exceeds 255 characters"
+  else return (String.concat "." subdomain)
 
 let cookie_av =
   take_while1 (function
@@ -232,37 +231,16 @@ let cookie_av =
     | ';' -> false
     | _ -> true )
 
-let parse p input = parse_string ~consume:Consume.All p input
-let parse_name name = parse cookie_name name
-let parse_value value = parse cookie_value value
+let path_value = cookie_av
+let extension_value = cookie_av
 
-let parse_domain_value domain =
-  match domain with
-  | None -> Ok None
-  | Some domain_av ->
-      let domain_av = String.trim domain_av in
-      let len = String.length domain_av in
-      if len = 0 then Ok None
-      else if len > 255 then
-        Error "Domain attribute value length must not exceed 255 characters"
-      else
-        let domain_av =
-          if String.equal "." (String.sub domain_av 0 1) then
-            (* A cookie domain attribute may start with a leading dot. *)
-            String.sub domain_av 0 1
-          else domain_av
-        in
-        parse (domain_value *> return (Some domain_av)) domain_av
-
-let parse_path_value path =
-  match path with
-  | Some path -> parse (cookie_av >>| Option.some) path
+let parse p input =
+  match input with
+  | Some input -> parse_string ~consume:Consume.All (p >>| Option.some) input
   | None -> Ok None
 
-let parse_extension_value extension =
-  match extension with
-  | Some extension -> parse (cookie_av >>| Option.some) extension
-  | None -> Ok None
+let parse_name name = parse_string ~consume:Consume.All cookie_name name
+let parse_value value = parse_string ~consume:Consume.All cookie_value value
 
 let parse_max_age max_age =
   match max_age with
@@ -304,10 +282,10 @@ let create ?path ?domain ?expires ?max_age ?secure ?http_only ?same_site
     ?extension ~name value =
   let* name = parse_name name in
   let* value = parse_value value in
-  let* domain = parse_domain_value domain in
-  let* path = parse_path_value path in
+  let* domain = parse domain_value domain in
+  let* path = parse path_value path in
   let* max_age = parse_max_age max_age in
-  let+ extension = parse_extension_value extension in
+  let+ extension = parse extension_value extension in
   { name
   ; value
   ; path
@@ -336,28 +314,40 @@ let of_cookie header =
              ; extension= None } )
            cookies' )
 
-let to_cookie t = Format.sprintf "%s=%s" (name t) (value t)
+let to_cookie t = Format.sprintf "%s=%s" t.name t.value
 
 let to_set_cookie t =
   let module O = Option in
   let buf = Buffer.create 50 in
   let add_str fmt = Format.ksprintf (Buffer.add_string buf) fmt in
-  add_str "%s=%s" (name t) (value t) ;
-  O.iter (fun path -> add_str "; Path=%s" path) (path t) ;
-  O.iter (fun d -> add_str "; Domain=%s" d) (domain t) ;
+  add_str "%s=%s" t.name t.value ;
+  O.iter (fun path -> add_str "; Path=%s" path) t.path ;
+  O.iter (fun d -> add_str "; Domain=%s" d) t.domain ;
   O.iter
     (fun expires -> add_str "; Expires=%s" @@ date_to_string expires)
-    (expires t) ;
+    t.expires ;
   O.iter
     (fun max_age -> if max_age > 0 then add_str "; Max-Age=%d" max_age)
-    (max_age t) ;
+    t.max_age ;
   O.iter (fun secure -> if secure then add_str "; Secure") t.secure ;
   O.iter (fun http_only -> if http_only then add_str "; HttpOnly") t.http_only ;
   O.iter
     (fun same_site -> add_str "; SameSite=%s" (same_site_to_string same_site))
     t.same_site ;
-  O.iter (fun extension -> add_str "; %s" extension) (extension t) ;
+  O.iter (fun extension -> add_str "; %s" extension) t.extension ;
   Buffer.contents buf
+
+(* Attributes *)
+let name c = c.name
+let value c = c.value
+let path c = c.path
+let domain c = c.domain
+let expires c = c.expires
+let max_age c = c.max_age
+let extension c = c.extension
+let same_site c = c.same_site
+let http_only c = c.http_only
+let secure c = c.secure
 
 (* Updates. *)
 let update_value value cookie =
@@ -369,11 +359,11 @@ let update_name name cookie =
   {cookie with name}
 
 let update_path path cookie =
-  let+ path = parse_path_value path in
+  let+ path = parse path_value path in
   {cookie with path}
 
 let update_domain domain cookie =
-  let+ domain = parse_domain_value domain in
+  let+ domain = parse domain_value domain in
   {cookie with domain}
 
 let update_expires expires cookie = {cookie with expires}
@@ -387,5 +377,5 @@ let update_http_only http_only cookie = {cookie with http_only}
 let update_same_site same_site cookie = {cookie with same_site}
 
 let update_extension extension cookie =
-  let+ extension = parse_extension_value extension in
+  let+ extension = parse extension_value extension in
   {cookie with extension}

@@ -31,6 +31,12 @@ and date_time
     https://tools.ietf.org/html/draft-ietf-httpbis-cookie-same-site-00. *)
 and same_site = [`None | `Lax | `Strict]
 
+(** {1 Pretty Printers} *)
+
+val pp : Format.formatter -> t -> unit
+val pp_date_time : Format.formatter -> date_time -> unit
+val pp_same_site : Format.formatter -> same_site -> unit
+
 (** {1 Create/Decode/Encode} *)
 
 val date_time :
@@ -188,9 +194,3 @@ val update_secure : bool option -> t -> t
 val update_http_only : bool option -> t -> t
 val update_same_site : same_site option -> t -> t
 val update_extension : string option -> t -> (t, string) result
-
-(** {1 Pretty Printers} *)
-
-val pp : Format.formatter -> t -> unit
-val pp_date_time : Format.formatter -> date_time -> unit
-val pp_same_site : Format.formatter -> same_site -> unit
