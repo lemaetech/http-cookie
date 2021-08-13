@@ -122,6 +122,27 @@ let compare_date_time (dt1 : date_time) (dt2 : date_time) =
                          ; whitespace DQUOTE, comma, semicolon,
                          ; and backslash
    token             = <token, defined in [RFC2616], Section 2.2>
+
+   cookie-av         = expires-av / max-age-av / domain-av /
+                       path-av / secure-av / httponly-av /
+                       extension-av
+   expires-av        = "Expires=" sane-cookie-date
+   sane-cookie-date  = <rfc1123-date, defined in [RFC2616], Section 3.3.1>
+   max-age-av        = "Max-Age=" non-zero-digit *DIGIT
+                         ; In practice, both expires-av and max-age-av
+                         ; are limited to dates representable by the
+                         ; user agent.
+   non-zero-digit    = %x31-39
+                         ; digits 1 through 9
+   domain-av         = "Domain=" domain-value
+   domain-value      = <subdomain>
+                         ; defined in [RFC1034], Section 3.5, as
+                         ; enhanced by [RFC1123], Section 2.1
+   path-av           = "Path=" path-value
+   path-value        = <any CHAR except CTLs or ";">
+   secure-av         = "Secure"
+   httponly-av       = "HttpOnly"
+   extension-av      = <any CHAR except CTLs or ";">
 *)
 open Angstrom
 
@@ -233,12 +254,6 @@ let cookie_av =
 
 let path_value = cookie_av
 let extension_value = cookie_av
-
-let parse p input =
-  match input with
-  | Some input -> parse_string ~consume:Consume.All (p >>| Option.some) input
-  | None -> Ok None
-
 let parse_name name = parse_string ~consume:Consume.All cookie_name name
 let parse_value value = parse_string ~consume:Consume.All cookie_value value
 
@@ -249,6 +264,11 @@ let parse_max_age max_age =
       if ma <= 0 then
         Error "Cookies 'Max-Age' attribute is less than or equal to 0"
       else Ok (Some ma)
+
+let parse p input =
+  match input with
+  | Some input -> parse_string ~consume:Consume.All (p >>| Option.some) input
+  | None -> Ok None
 
 let ( let* ) r f = Result.bind r f
 let ( let+ ) r f = Result.map f r
@@ -336,6 +356,8 @@ let to_set_cookie t =
     t.same_site ;
   O.iter (fun extension -> add_str "; %s" extension) t.extension ;
   Buffer.contents buf
+
+let of_set_cookie _s = failwith "not implemented"
 
 (* Attributes *)
 let name c = c.name

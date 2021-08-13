@@ -116,6 +116,13 @@ val to_set_cookie : t -> string
 SID=31d4d96e407aad42; Path=/; Secure; HttpOnly; Expires=Sun, 06 Nov 1994 08:49:37 GMT
     v} *)
 
+val of_set_cookie : string -> (t, string) result
+(** [of_set_cookie s] is [Ok cookie] if [s] can be parsed successfully to create
+    {!type:t}. [s] is the HTTP 'Set-Cookie' header value. The syntax for the
+    value is defined as [set-cookie-string] in
+    {{:https://datatracker.ietf.org/doc/html/rfc6265#section-4.1.1} RFC 6265,
+    4.1} *)
+
 (** {1 Cookie Attributes}
 
     Cookie attributes are defined precisely at
