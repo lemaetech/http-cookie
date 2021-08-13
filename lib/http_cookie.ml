@@ -276,6 +276,93 @@ let domain_value =
   else return (String.concat "." subdomain) )
   <?> "domain_value"
 
+let ipv4_address =
+  let d8 =
+    lift2
+      (fun s1 c -> Format.sprintf "%s%c" s1 c)
+      (string "25")
+      (satisfy (function '\x30' .. '\x35' -> true | _ -> false))
+    <|> lift3
+          (fun c1 c2 c3 -> Format.sprintf "%c%c%c" c1 c2 c3)
+          (char '2')
+          (satisfy (function '\x30' .. '\x34' -> true | _ -> false))
+          digit
+    <|> lift3
+          (fun c1 c2 c3 -> Format.sprintf "%c%c%c" c1 c2 c3)
+          (char '1') digit digit
+    <|> lift2
+          (fun c1 c2 -> Format.sprintf "%c%c" c1 c2)
+          (satisfy (function '\x31' .. '\x39' -> true | _ -> false))
+          digit
+    <|> (digit >>| Format.sprintf "%c")
+  in
+  let* oct1 = d8 <* char '.' in
+  let* oct2 = d8 <* char '.' in
+  let* oct3 = d8 <* char '.' in
+  let+ oct4 = d8 in
+  Format.sprintf "%s.%s.%s.%s" oct1 oct2 oct3 oct4
+
+(*
+   IPv6address =                            6(h16 ":") ls32
+                 /                     "::" 5(h16 ":") ls32
+                 / [             h16 ] "::" 4(h16 ":") ls32
+                 / [ *1(h16 ":") h16 ] "::" 3(h16 ":") ls32
+                 / [ *2(h16 ":") h16 ] "::" 2(h16 ":") ls32
+                 / [ *3(h16 ":") h16 ] "::"   h16 ":"  ls32
+                 / [ *4(h16 ":") h16 ] "::"            ls32
+                 / [ *5(h16 ":") h16 ] "::"             h16
+                 / [ *6(h16 ":") h16 ] "::"
+
+           ls32 = h16 ":" h16 / IPv4address
+
+           h16  = 1*4HEXDIG
+*)
+let ipv6_address =
+  let h16 =
+    let* hexdigits =
+      take_while1 (function
+        | c when is_digit c -> true
+        | 'A' .. 'F' -> true
+        | _ -> false )
+    in
+    if String.length hexdigits <= 4 then return hexdigits
+    else
+      fail
+        (Format.sprintf "[%s] ipv6 [h16] address must be from 1 to 4 digits: %s"
+           __LOC__ hexdigits )
+  in
+  let ls32 =
+    lift3 (fun h1 _ h2 -> Format.sprintf "%s:%s" h1 h2) h16 (char ':') h16
+    <|> ipv4_address
+  in
+  let rec loop n parser' =
+    if n > 0 then
+      let* x = parser' in
+      let+ rest = loop (n - 1) parser' in
+      x :: rest
+    else return []
+  in
+  lift2
+    (fun h16s ls32 ->
+      let h16s = String.concat ":" h16s in
+      h16s ^ ls32 )
+    (loop 6 (h16 <* char ':'))
+    ls32
+  <|> lift3
+        (fun s1 h16s ls32 ->
+          let h16s = String.concat ":" h16s in
+          Format.sprintf "%s%s%s" s1 h16s ls32 )
+        (string "::")
+        (loop 5 (h16 <* char ':'))
+        ls32
+  <|> lift4
+        (fun h1 s1 h16s ls32 ->
+          let h16s = String.concat ":" h16s in
+          Format.sprintf "%s%s%s%s" h1 s1 h16s ls32 )
+        (option "" h16) (string "::")
+        (loop 4 (h16 <* char ':'))
+        ls32
+
 let cookie_attr_value =
   take_while1 (function
     | '\x00' .. '\x1F' | '\x7F' -> false (* CONTROL chars *)
