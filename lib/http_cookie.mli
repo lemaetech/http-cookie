@@ -24,7 +24,7 @@
 (** A HTTP cookie. *)
 type t
 
-(** Cookie expiry datetime value. *)
+(** Date time value. *)
 and date_time
 
 (** 'Same-site' cookie attribute. See
@@ -55,7 +55,8 @@ val date_time :
   -> seconds:int
   -> (date_time, string) result
 (** [date_time] is [Ok dt] if all of the given parameters are valid for creating
-    {!type:date_time} value, otherwise [Error err] is denotes the error. *)
+    {!type:date_time} value, otherwise it is [Error err] where err denotes the
+    error. *)
 
 val create :
      ?path:string
