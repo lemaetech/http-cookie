@@ -240,15 +240,17 @@ let domain_value =
         else
           fail
             (Format.sprintf
-               "Invalid 'Domain' cookie attribute value: %s. middle characters \
-                must end with either a letter or a digit"
+               "[%s] Invalid 'Domain' cookie attribute value: %s. middle \
+                characters must end with either a letter or a digit"
+               __LOC__
                (string_of_list middle_chars) )
       else if len = 0 then return []
       else
         fail
           (Format.sprintf
-             "Invalid 'Domain' cookie attribute value: %s. label must 63 \
+             "[%s] Invalid 'Domain' cookie attribute value: %s. label must 63 \
               characters or less."
+             __LOC__
              (string_of_list middle_chars) )
     in
     string_of_list (first_char :: middle_chars)
@@ -264,7 +266,10 @@ let domain_value =
   let* subdomain = subdomain in
   let* end_pos = pos in
   let len = end_pos - start_pos in
-  if len > 255 then fail "Domain attribute length exceeds 255 characters"
+  if len > 255 then
+    fail
+      (Format.sprintf "[%s] Domain attribute length exceeds 255 characters"
+         __LOC__ )
   else return (String.concat "." subdomain)
 
 let cookie_attr_value =
@@ -325,9 +330,9 @@ let http_date =
       else
         fail
         @@ Format.sprintf
-             "Invalid hour value: %d. Hour must be in between 0 and 23 \
+             "[%s] Invalid hour value: %d. Hour must be in between 0 and 23 \
               inclusive"
-             hour
+             __LOC__ hour
     in
     let* mm =
       digits 2 <* char ':'
@@ -336,9 +341,9 @@ let http_date =
       else
         fail
         @@ Format.sprintf
-             "Invalid minutes value: %d. Minutes must be in between 0 and 59 \
-              inclusive"
-             minutes
+             "[%s] Invalid minutes value: %d. Minutes must be in between 0 and \
+              59 inclusive"
+             __LOC__ minutes
     in
     let+ ss =
       digits 2
@@ -347,9 +352,9 @@ let http_date =
       else
         fail
         @@ Format.sprintf
-             "Invalid seconds value: %d. Seconds must be in between 0 and 59 \
-              inclusive"
-             seconds
+             "[%s] Invalid seconds value: %d. Seconds must be in between 0 and \
+              59 inclusive"
+             __LOC__ seconds
     in
     (hh, mm, ss)
   in
@@ -368,7 +373,9 @@ let http_date =
       else year
     in
     if year < 1601 then
-      fail (Format.sprintf "Invalid year: %d. Year is less than 1601" year)
+      fail
+        (Format.sprintf "[%s] Invalid year: %d. Year is less than 1601" __LOC__
+           year )
     else return year
   in
   let day_of_month day =
@@ -376,9 +383,9 @@ let http_date =
     else
       fail
         (Format.sprintf
-           "Invalid day of month: %d. Day of month must be in between 1 and 31 \
-            inclusive."
-           day )
+           "[%s] Invalid day of month: %d. Day of month must be in between 1 \
+            and 31 inclusive."
+           __LOC__ day )
   in
   let date1 =
     let* day = digits 2 <* space >>= day_of_month in
@@ -426,7 +433,7 @@ let max_age_value =
   try return (Int64.of_string max_age)
   with exn ->
     fail
-      (Format.sprintf "Invalid max_age value:%s. %s" max_age
+      (Format.sprintf "[%s] Invalid max_age value:%s. %s" __LOC__ max_age
          (Printexc.to_string exn) )
 
 let cookie_av =
@@ -465,7 +472,10 @@ let parse_max_age max_age =
   | None -> Ok None
   | Some ma ->
       if ma <= 0L then
-        Error "Cookies 'Max-Age' attribute is less than or equal to 0"
+        Error
+          (Format.sprintf
+             "[%s] Cookies 'Max-Age' attribute is less than or equal to 0"
+             __LOC__ )
       else Ok (Some ma)
 
 let parse p input =
@@ -479,23 +489,31 @@ let ( let+ ) r f = Result.map f r
 let date_time ~year ~month ~weekday ~day ~hour ~minutes ~seconds =
   let* year =
     if year > 0 && year < 9999 then Ok year
-    else Error (Format.sprintf "Invalid year (>0 && < 9999): %d" year)
+    else
+      Error (Format.sprintf "[%s] Invalid year (>0 && < 9999): %d" __LOC__ year)
   in
   let* day =
     if day > 0 && day <= 31 then Ok day
-    else Error (Format.sprintf "Invalid day of month ( > 0 && <= 31): %d" day)
+    else
+      Error
+        (Format.sprintf "[%s] Invalid day of month ( > 0 && <= 31): %d" __LOC__
+           day )
   in
   let* hour =
     if hour > 0 && hour < 24 then Ok hour
-    else Error (Format.sprintf "Invalid hour (>0 && <24): %d" hour)
+    else Error (Format.sprintf "[%s] Invalid hour (>0 && <24): %d" __LOC__ hour)
   in
   let* minutes =
     if minutes >= 0 && minutes < 60 then Ok minutes
-    else Error (Format.sprintf "Invalid minutes (>=0 && < 60): %d" minutes)
+    else
+      Error
+        (Format.sprintf "[%s] Invalid minutes (>=0 && < 60): %d" __LOC__ minutes)
   in
   let* seconds =
     if seconds >= 0 && seconds < 60 then Ok seconds
-    else Error (Format.sprintf "Invalid seconds (>=0 && < 60): %d" seconds)
+    else
+      Error
+        (Format.sprintf "[%s] Invalid seconds (>=0 && < 60): %d" __LOC__ seconds)
   in
   Ok {year; month; weekday; day; hour; minutes; seconds}
 
