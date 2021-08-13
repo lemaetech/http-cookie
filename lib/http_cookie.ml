@@ -236,6 +236,7 @@ let domain_value =
     let+ middle_chars =
       let len = List.length middle_chars in
       if len > 0 && len <= 62 then
+        (* 62 = 63 - first_char *)
         let last_char = List.nth middle_chars (len - 1) in
         if is_digit last_char || is_letter last_char then return middle_chars
         else
