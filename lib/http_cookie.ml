@@ -454,9 +454,9 @@ let http_date =
     <|> string "May" <|> string "Jun" <|> string "Jul" <|> string "Aug"
     <|> string "Sep" <|> string "Oct" <|> string "Nov" <|> string "Dec"
   in
-  (* (* canonical year according to steps 3 and 4 in*)
-     (*    https://datatracker.ietf.org/doc/html/rfc6265#section-5.1.1*)
-     (* *)*)
+  (* canonical year according to steps 3 and 4 in
+        https://datatracker.ietf.org/doc/html/rfc6265#section-5.1.1
+  *)
   let canonical_year year =
     let year =
       if year >= 70 && year <= 99 then year + 1900
