@@ -323,45 +323,39 @@ let ipv6_address =
       take_while1 (function
         | c when is_digit c -> true
         | 'A' .. 'F' -> true
+        | 'a' .. 'f' -> true
         | _ -> false )
     in
-    if String.length hexdigits <= 4 then return hexdigits
+    if String.length hexdigits <= 4 then return (`H16 hexdigits)
     else
       fail
-        (Format.sprintf "[%s] ipv6 [h16] address must be from 1 to 4 digits: %s"
+        (Format.sprintf "[%s] ipv6 [h16] must be from 1 to 4 hex digits: %s"
            __LOC__ hexdigits )
   in
-  let ls32 =
-    lift3 (fun h1 _ h2 -> Format.sprintf "%s:%s" h1 h2) h16 (char ':') h16
-    <|> ipv4_address
+  let double_colon = string "::" *> return [`Dbl_colon] in
+  let* ip_parts =
+    let h16s = sep_by (char ':') h16 in
+    many1 (h16s <|> double_colon <|> (ipv4_address >>| fun ipv4 -> [`Ipv4 ipv4]))
+    >>| List.concat
   in
-  let rec loop n parser' =
-    if n > 0 then
-      let* x = parser' in
-      let+ rest = loop (n - 1) parser' in
-      x :: rest
-    else return []
+  let dbl_colon_found, part1, part2 =
+    List.fold_left
+      (fun (dbl_colon_found, x, y) a ->
+        match a with
+        | `Dbl_colon -> (true, x, y)
+        | _ ->
+            if dbl_colon_found then (dbl_colon_found, x, a :: y)
+            else (dbl_colon_found, a :: x, y) )
+      (false, [], []) ip_parts
   in
-  lift2
-    (fun h16s ls32 ->
-      let h16s = String.concat ":" h16s in
-      h16s ^ ls32 )
-    (loop 6 (h16 <* char ':'))
-    ls32
-  <|> lift3
-        (fun s1 h16s ls32 ->
-          let h16s = String.concat ":" h16s in
-          Format.sprintf "%s%s%s" s1 h16s ls32 )
-        (string "::")
-        (loop 5 (h16 <* char ':'))
-        ls32
-  <|> lift4
-        (fun h1 s1 h16s ls32 ->
-          let h16s = String.concat ":" h16s in
-          Format.sprintf "%s%s%s%s" h1 s1 h16s ls32 )
-        (option "" h16) (string "::")
-        (loop 4 (h16 <* char ':'))
-        ls32
+  (* TODO ipv4 is found must be the last part *)
+  (* TODO if '::' is found then total count of h16s and ipv4 cannot exceed 7. *)
+  if
+    (not dbl_colon_found)
+    && List.for_all (function `H16 _ -> true | _ -> false) part1
+    && List.length part1 = 8
+  then return part1
+  else return part2
 
 let cookie_attr_value =
   take_while1 (function
