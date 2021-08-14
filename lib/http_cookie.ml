@@ -679,8 +679,7 @@ let of_set_cookie set_cookie =
              | `Path path -> {cookie with path}
              | `Secure -> {cookie with secure= true}
              | `Http_only -> {cookie with http_only= true}
-             | `Extension extension -> {cookie with extension}
-             | _ -> cookie )
+             | `Extension extension -> {cookie with extension} )
            { name
            ; value
            ; path= None
