@@ -333,29 +333,43 @@ let ipv6_address =
            __LOC__ hexdigits )
   in
   let double_colon = string "::" *> return [`Dbl_colon] in
+  let is_ipv4 = function `Ipv4 _ -> true | _ -> false in
   let* ip_parts =
     let h16s = sep_by (char ':') h16 in
-    many1 (h16s <|> double_colon <|> (ipv4_address >>| fun ipv4 -> [`Ipv4 ipv4]))
-    >>| List.concat
+    let ipv4 = ipv4_address >>| fun ipv4 -> [`Ipv4 ipv4] in
+    many1 (h16s <|> double_colon <|> ipv4) >>| List.concat
   in
-  let dbl_colon_found, part1, part2 =
-    List.fold_left
-      (fun (dbl_colon_found, x, y) a ->
-        match a with
-        | `Dbl_colon -> (true, x, y)
-        | _ ->
-            if dbl_colon_found then (dbl_colon_found, x, a :: y)
-            else (dbl_colon_found, a :: x, y) )
-      (false, [], []) ip_parts
+  let dbl_colon_exists =
+    List.exists (function `Dbl_colon -> true | _ -> false) ip_parts
   in
-  (* TODO ipv4 is found must be the last part *)
-  (* TODO if '::' is found then total count of h16s and ipv4 cannot exceed 7. *)
-  if
-    (not dbl_colon_found)
-    && List.for_all (function `H16 _ -> true | _ -> false) part1
-    && List.length part1 = 8
-  then return part1
-  else return part2
+  let ipv4_exists = List.exists is_ipv4 ip_parts in
+  let len = List.length ip_parts in
+  let exception Invalid_ipv6 of string in
+  let validate_ipv4 () =
+    let is_ipv4_last = is_ipv4 @@ List.nth ip_parts (len - 1) in
+    if ipv4_exists then
+      if is_ipv4_last then ()
+      else
+        raise
+          (Invalid_ipv6
+             (Format.sprintf
+                "[%s] Invalid IPv6 address. IP v4 if specified must be the \
+                 last component."
+                __LOC__ ) )
+    else ()
+  in
+  let validate_part_count () =
+    if len = 1 && dbl_colon_exists then ()
+    else if dbl_colon_exists && (not ipv4_exists) && len <= 7 then ()
+    else if dbl_colon_exists && ipv4_exists && len <= 5 then ()
+    else if (not dbl_colon_exists) && (not ipv4_exists) && len = 8 then ()
+    else
+      raise
+        (Invalid_ipv6
+           (Format.sprintf "[%s] Invalid IPv6 address components." __LOC__) )
+  in
+  try validate_part_count () ; validate_ipv4 () ; return ip_parts
+  with Invalid_ipv6 s -> fail s
 
 let cookie_attr_value =
   take_while1 (function
