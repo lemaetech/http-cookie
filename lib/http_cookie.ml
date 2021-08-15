@@ -583,7 +583,7 @@ let parse_max_age max_age =
              "Cookies 'Max-Age' attribute is less than or equal to 0" )
       else Ok (Some ma)
 
-let parse p input =
+let parse_opt p input =
   match input with
   | Some input -> parse_string ~consume:Consume.All (p >>| Option.some) input
   | None -> Ok None
@@ -618,10 +618,10 @@ let create ?path ?domain ?expires ?max_age ?(secure = false)
     ?(http_only = false) ?same_site ?extension ~name value =
   let* name = parse_name name in
   let* value = parse_value value in
-  let* domain = parse domain_value domain in
-  let* path = parse path_value path in
+  let* domain = parse_opt domain_value domain in
+  let* path = parse_opt path_value path in
   let* max_age = parse_max_age max_age in
-  let+ extension = parse extension_value extension in
+  let+ extension = parse_opt extension_value extension in
   { name
   ; value
   ; path
@@ -719,11 +719,11 @@ let update_name name cookie =
   {cookie with name}
 
 let update_path path cookie =
-  let+ path = parse path_value path in
+  let+ path = parse_opt path_value path in
   {cookie with path}
 
 let update_domain domain cookie =
-  let+ domain = parse domain_value domain in
+  let+ domain = parse_opt domain_value domain in
   {cookie with domain}
 
 let update_expires expires cookie = {cookie with expires}
@@ -737,5 +737,5 @@ let update_http_only http_only cookie = {cookie with http_only}
 let update_same_site same_site cookie = {cookie with same_site}
 
 let update_extension extension cookie =
-  let+ extension = parse extension_value extension in
+  let+ extension = parse_opt extension_value extension in
   {cookie with extension}
