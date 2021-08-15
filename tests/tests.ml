@@ -121,7 +121,7 @@ let pp_t t =
     Fmt.stdout t
 
 let%expect_test "create: name=hello,value=world" =
-  Http_cookie.create ~name:"hello" "world" |> pp_t ;
+  Http_cookie.create ~path:"/hello" ~name:"hello" "world" |> pp_t ;
   [%expect
     {|
     name: hello
