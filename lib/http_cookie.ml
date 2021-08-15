@@ -557,13 +557,12 @@ let cookie_string = sep_by1 (char ';' *> char '\x20') cookie_pair
 let parse_name name =
   parse_string ~consume:Consume.All cookie_name name
   |> function
-  | Ok _ as ok -> ok | Error _ -> Error (Format.sprintf "cookie name: %s" name)
+  | Ok _ as ok -> ok | Error _ -> Error (Format.sprintf "name: %s" name)
 
 let parse_value value =
   parse_string ~consume:Consume.All cookie_value value
   |> function
-  | Ok _ as ok -> ok
-  | Error _ -> Error (Format.sprintf "cookie value: %s" value)
+  | Ok _ as ok -> ok | Error _ -> Error (Format.sprintf "value: %s" value)
 
 let parse_max_age max_age =
   match max_age with
