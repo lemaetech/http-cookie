@@ -201,15 +201,12 @@ let cookie_value =
         true
     | _ -> false
   in
-  take_while cookie_octet
-  <|> (char '"' *> take_while cookie_octet <* char '"')
-  <?> "cookie_value"
+  take_while cookie_octet <|> (char '"' *> take_while cookie_octet <* char '"')
 
 let cookie_pair =
-  (let* name = cookie_name in
-   let+ value = char '=' *> cookie_value in
-   (name, value) )
-  <?> "cookie_pair"
+  let* name = cookie_name in
+  let+ value = char '=' *> cookie_value in
+  (name, value)
 
 (* Domain attribute value:
 
@@ -274,10 +271,9 @@ let domain_name =
   let* subdomain = subdomain in
   let* end_pos = pos in
   let len = end_pos - start_pos in
-  ( if len > 255 then
+  if len > 255 then
     fail (Format.sprintf "Domain attribute length exceeds 255 characters")
-  else return (String.concat "." subdomain) )
-  <?> "domain_name"
+  else return (String.concat "." subdomain)
 
 (*
      IPv4address = d8 "." d8 "." d8 "." d8
@@ -393,8 +389,7 @@ let ipv6_address =
     return ip
   with Invalid_IPv6 s -> fail s
 
-let domain_value =
-  domain_name <|> ipv4_address <|> ipv6_address <?> "domain_value"
+let domain_value = domain_name <|> ipv4_address <|> ipv6_address
 
 let cookie_attr_value =
   take_while1 (function
@@ -511,19 +506,18 @@ let http_date =
     let+ hour, minutes, seconds = time <* space *> string "GMT" in
     {weekday; day; month; year; hour; minutes; seconds}
   in
-  rfc1123_date <?> "http_date"
+  rfc1123_date
 
 let max_age_value =
   let non_zero_digit = satisfy (function '1' .. '9' -> true | _ -> false) in
   let* first_char = non_zero_digit in
   let* digits = take_while is_digit in
   let max_age = Format.sprintf "%c%s" first_char digits in
-  ( try return (Int64.of_string max_age)
-    with exn ->
-      fail
-        (Format.sprintf "Invalid max_age value:%s. %s" max_age
-           (Printexc.to_string exn) ) )
-  <?> "max_age_value"
+  try return (Int64.of_string max_age)
+  with exn ->
+    fail
+      (Format.sprintf "Invalid max_age value:%s. %s" max_age
+         (Printexc.to_string exn) )
 
 let cookie_av =
   let expires_av =
