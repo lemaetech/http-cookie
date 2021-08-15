@@ -227,7 +227,7 @@ let digit = satisfy is_digit
 let letter = satisfy is_letter
 let space = char ' '
 
-let domain_value =
+let domain_name =
   let let_dig = letter <|> digit in
   let let_dig_hyp = let_dig <|> char '-' in
   let ldh_str = many1 let_dig_hyp in
@@ -311,7 +311,7 @@ let ipv4_address =
            ls32 = h16 ":" h16 / IPv4address
            h16  = 1*4HEXDIG
 *)
-let _ipv6_address =
+let ipv6_address =
   let h16 =
     let* hexdigits =
       take_while1 (function
@@ -376,6 +376,8 @@ let _ipv6_address =
     in
     return ip
   with Invalid_IPv6 s -> fail s
+
+let domain_value = domain_name <|> ipv4_address <|> ipv6_address
 
 let cookie_attr_value =
   take_while1 (function
