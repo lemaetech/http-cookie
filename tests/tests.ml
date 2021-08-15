@@ -135,3 +135,15 @@ let%expect_test "create: hello, world" =
 let%expect_test "create: path: he@llo" =
   Http_cookie.create ~name:"he@llo" "world" |> pp_t ;
   [%expect {| Invalid cookie name: he@llo |}]
+
+let%expect_test "create: path: he(llo" =
+  Http_cookie.create ~name:"he(llo" "world" |> pp_t ;
+  [%expect {| Invalid cookie name: he(llo |}]
+
+let%expect_test "create: path: he>llo" =
+  Http_cookie.create ~name:"he>llo" "world" |> pp_t ;
+  [%expect {| Invalid cookie name: he>llo |}]
+
+let%expect_test "create: path: he<llo" =
+  Http_cookie.create ~name:"he<llo" "world" |> pp_t ;
+  [%expect {| Invalid cookie name: he<llo |}]
