@@ -569,8 +569,8 @@ let ( let+ ) r f = Result.map f r
 
 let date_time ~year ~month ~weekday ~day ~hour ~minutes ~seconds =
   let* year =
-    if year > 0 && year < 9999 then Ok year
-    else Error (Format.sprintf "Invalid year (>0 && < 9999): %d" year)
+    if year > 1601 && year < 9999 then Ok year
+    else Error (Format.sprintf "Invalid year (>1601 && < 9999): %d" year)
   in
   let* day =
     if day > 0 && day <= 31 then Ok day

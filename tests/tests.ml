@@ -8,19 +8,31 @@ let%expect_test "date_time: year 0 " =
   Http_cookie.date_time ~year:0 ~month:`Jan ~weekday:`Sun ~day:23 ~hour:22
     ~minutes:45 ~seconds:59
   |> print_date_time ;
-  [%expect {| Invalid year (>0 && < 9999): 0 |}]
+  [%expect {| Invalid year (>1601 && < 9999): 0 |}]
 
 let%expect_test "date_time: year 10000" =
   Http_cookie.date_time ~year:10_000 ~month:`Jan ~weekday:`Sun ~day:23 ~hour:22
     ~minutes:45 ~seconds:59
   |> print_date_time ;
-  [%expect {| Invalid year (>0 && < 9999): 10000 |}]
+  [%expect {| Invalid year (>1601 && < 9999): 10000 |}]
 
 let%expect_test "date_time: year 2021" =
   Http_cookie.date_time ~year:2021 ~month:`Jan ~weekday:`Sun ~day:23 ~hour:22
     ~minutes:45 ~seconds:59
   |> print_date_time ;
   [%expect {| Sun, 23 Jan 2021 22:45:59 GMT |}]
+
+let%expect_test "date_time: year 1601" =
+  Http_cookie.date_time ~year:1601 ~month:`Jan ~weekday:`Sun ~day:23 ~hour:22
+    ~minutes:45 ~seconds:59
+  |> print_date_time ;
+  [%expect {| Invalid year (>1601 && < 9999): 1601 |}]
+
+let%expect_test "date_time: year 1602" =
+  Http_cookie.date_time ~year:1602 ~month:`Jan ~weekday:`Sun ~day:23 ~hour:22
+    ~minutes:45 ~seconds:59
+  |> print_date_time ;
+  [%expect {| Sun, 23 Jan 1602 22:45:59 GMT |}]
 
 let%expect_test "date_time: day 0" =
   Http_cookie.date_time ~year:2021 ~month:`Jan ~weekday:`Sun ~day:0 ~hour:22
