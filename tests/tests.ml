@@ -158,3 +158,7 @@ let%expect_test "create: value=val dd (space ' ' is invalid)" =
 let%expect_test "create: value=val,dd (',' is invalid)" =
   Http_cookie.create ~name:"hello" "val,dd" |> pp_t ;
   [%expect {| Error: cookie value: val,dd |}]
+
+let%expect_test "create: path=val;dd (';' is invalid)" =
+  Http_cookie.create ~path:"val;dd" ~name:"hello" "value" |> pp_t ;
+  [%expect {| Error: path: val;dd |}]

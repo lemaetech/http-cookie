@@ -402,8 +402,8 @@ let cookie_attr_value =
     | ';' -> false
     | _ -> true )
 
-let path_value = cookie_attr_value <?> "path_value"
-let extension_value = cookie_attr_value <?> "extension_value"
+let path_value = cookie_attr_value
+let extension_value = cookie_attr_value
 
 (* https://datatracker.ietf.org/doc/html/rfc7231#section-7.1.1.1
 
@@ -575,9 +575,15 @@ let parse_max_age max_age =
              "Cookies 'Max-Age' attribute is less than or equal to 0" )
       else Ok (Some ma)
 
-let parse_opt p input =
+let parse_opt ?error_label p input =
   match input with
-  | Some input -> parse_string ~consume:Consume.All (p >>| Option.some) input
+  | Some input -> (
+      parse_string ~consume:Consume.All (p >>| Option.some) input
+      |> function
+      | Ok _ as ok -> ok
+      | Error err ->
+          let error_label = Option.value ~default:err error_label in
+          Error (Format.sprintf "%s: %s" error_label input) )
   | None -> Ok None
 
 let ( let* ) r f = Result.bind r f
@@ -611,9 +617,11 @@ let create ?path ?domain ?expires ?max_age ?(secure = false)
   let* name = parse_name name in
   let* value = parse_value value in
   let* domain = parse_opt domain_value domain in
-  let* path = parse_opt path_value path in
+  let* path = parse_opt ~error_label:"path" path_value path in
   let* max_age = parse_max_age max_age in
-  let+ extension = parse_opt extension_value extension in
+  let+ extension =
+    parse_opt ~error_label:"extension" extension_value extension
+  in
   { name
   ; value
   ; path
