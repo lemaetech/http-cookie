@@ -399,6 +399,9 @@ let extension_value = cookie_attr_value <?> "extension_value"
 
 (* https://datatracker.ietf.org/doc/html/rfc7231#section-7.1.1.1
 
+   HTTP cookie specifies RFC 1123 date. The rest is included here
+   for completeness.
+
    HTTP-date    = rfc1123-date | rfc850-date | asctime-date
    rfc1123-date = wkday "," SP date1 SP time SP "GMT"
    rfc850-date  = weekday "," SP date2 SP time SP "GMT"
@@ -420,11 +423,6 @@ let extension_value = cookie_attr_value <?> "extension_value"
                | "Sep" | "Oct" | "Nov" | "Dec"
 *)
 let http_date =
-  let weekday =
-    string "Monday" <|> string "Tuesday" <|> string "Wednesday"
-    <|> string "Thursday" <|> string "Friday" <|> string "Saturday"
-    <|> string "Sunday"
-  in
   let wkday =
     string "Mon" <|> string "Tue" <|> string "Wed" <|> string "Thu"
     <|> string "Fri" <|> string "Sat" <|> string "Sun"
@@ -479,15 +477,7 @@ let http_date =
     <|> string "May" <|> string "Jun" <|> string "Jul" <|> string "Aug"
     <|> string "Sep" <|> string "Oct" <|> string "Nov" <|> string "Dec"
   in
-  (* canonical year according to steps 3 and 4 in
-        https://datatracker.ietf.org/doc/html/rfc6265#section-5.1.1
-  *)
-  let canonical_year year =
-    let year =
-      if year >= 70 && year <= 99 then year + 1900
-      else if year >= 0 && year <= 69 then year + 2000
-      else year
-    in
+  let validate_year year =
     if year < 1601 then
       fail (Format.sprintf "Invalid year: %d. Year is less than 1601" year)
     else return year
@@ -504,19 +494,8 @@ let http_date =
   let date1 =
     let* day = digits 2 <* space >>= day_of_month in
     let* month = month <* space >>| to_month in
-    let+ year = digits 4 >>= canonical_year in
+    let+ year = digits 4 >>= validate_year in
     (day, month, year)
-  in
-  let date2 =
-    let* day = digits 2 <* char '-' >>= day_of_month in
-    let* month = month <* char '-' >>| to_month in
-    let+ year = digits 2 >>= canonical_year in
-    (day, month, year)
-  in
-  let date3 =
-    let* month = month <* char ' ' >>| to_month in
-    let+ day = digits 2 <|> digits 1 >>= day_of_month in
-    (month, day)
   in
   let rfc1123_date =
     let* weekday = wkday <* char ',' *> space >>| to_weekday in
@@ -524,20 +503,7 @@ let http_date =
     let+ hour, minutes, seconds = time <* space *> string "GMT" in
     {weekday; day; month; year; hour; minutes; seconds}
   in
-  let rfc850_date =
-    let* weekday = weekday <* char ',' *> space >>| to_weekday in
-    let* day, month, year = date2 <* space in
-    let+ hour, minutes, seconds = time <* space *> string "GMT" in
-    {weekday; day; month; year; hour; minutes; seconds}
-  in
-  let asctime_date =
-    let* weekday = wkday <* space >>| to_weekday in
-    let* month, day = date3 <* space in
-    let* hour, minutes, seconds = time <* space in
-    let+ year = digits 4 >>= canonical_year in
-    {weekday; day; month; year; hour; minutes; seconds}
-  in
-  rfc1123_date <|> rfc850_date <|> asctime_date <?> "http_date"
+  rfc1123_date <?> "http_date"
 
 let max_age_value =
   let non_zero_digit = satisfy (function '1' .. '9' -> true | _ -> false) in
