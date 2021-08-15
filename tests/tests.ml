@@ -115,9 +115,12 @@ let%expect_test "date_time: seconds -1" =
   [%expect {| Invalid seconds (>=0 && < 60): -1 |}]
 
 (* create tests *)
-let pp_t t = Fmt.result ~ok:Http_cookie.pp ~error:Fmt.string Fmt.stdout t
+let pp_t t =
+  Fmt.result ~ok:Http_cookie.pp
+    ~error:(fun fmt s -> Fmt.pf fmt "Error: %s" s)
+    Fmt.stdout t
 
-let%expect_test "create: hello, world" =
+let%expect_test "create: name=hello,value=world" =
   Http_cookie.create ~name:"hello" "world" |> pp_t ;
   [%expect
     {|
@@ -132,18 +135,26 @@ let%expect_test "create: hello, world" =
     same_site:
     extension: |}]
 
-let%expect_test "create: path: he@llo" =
+let%expect_test "create: name=he@llo" =
   Http_cookie.create ~name:"he@llo" "world" |> pp_t ;
-  [%expect {| Invalid cookie name: he@llo |}]
+  [%expect {| Error: cookie name: he@llo |}]
 
-let%expect_test "create: path: he(llo" =
+let%expect_test "create: name=he(llo" =
   Http_cookie.create ~name:"he(llo" "world" |> pp_t ;
-  [%expect {| Invalid cookie name: he(llo |}]
+  [%expect {| Error: cookie name: he(llo |}]
 
-let%expect_test "create: path: he>llo" =
+let%expect_test "create: name=he>llo" =
   Http_cookie.create ~name:"he>llo" "world" |> pp_t ;
-  [%expect {| Invalid cookie name: he>llo |}]
+  [%expect {| Error: cookie name: he>llo |}]
 
-let%expect_test "create: path: he<llo" =
+let%expect_test "create: name=he<llo" =
   Http_cookie.create ~name:"he<llo" "world" |> pp_t ;
-  [%expect {| Invalid cookie name: he<llo |}]
+  [%expect {| Error: cookie name: he<llo |}]
+
+let%expect_test "create: value=val dd (space ' ' is invalid)" =
+  Http_cookie.create ~name:"hello" "val dd" |> pp_t ;
+  [%expect {| Error: cookie value: val dd |}]
+
+let%expect_test "create: value=val,dd (',' is invalid)" =
+  Http_cookie.create ~name:"hello" "val,dd" |> pp_t ;
+  [%expect {| Error: cookie value: val,dd |}]

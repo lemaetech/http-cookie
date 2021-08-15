@@ -184,6 +184,13 @@ let token =
 
 let cookie_name = token
 
+(*
+cookie-value      = *cookie-octet / ( DQUOTE *cookie-octet DQUOTE )
+cookie-octet      = %x21 / %x23-2B / %x2D-3A / %x3C-5B / %x5D-7E
+                      ; US-ASCII characters excluding CTLs,
+                      ; whitespace DQUOTE, comma, semicolon,
+                      ; and backslash
+*)
 let cookie_value =
   let cookie_octet = function
     | '\x21'
@@ -550,10 +557,13 @@ let cookie_string = sep_by1 (char ';' *> char '\x20') cookie_pair
 let parse_name name =
   parse_string ~consume:Consume.All cookie_name name
   |> function
-  | Ok _ as ok -> ok
-  | Error _ -> Error (Format.sprintf "Invalid cookie name: %s" name)
+  | Ok _ as ok -> ok | Error _ -> Error (Format.sprintf "cookie name: %s" name)
 
-let parse_value value = parse_string ~consume:Consume.All cookie_value value
+let parse_value value =
+  parse_string ~consume:Consume.All cookie_value value
+  |> function
+  | Ok _ as ok -> ok
+  | Error _ -> Error (Format.sprintf "cookie value: %s" value)
 
 let parse_max_age max_age =
   match max_age with
