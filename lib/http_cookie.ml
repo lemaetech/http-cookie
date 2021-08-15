@@ -270,7 +270,7 @@ let domain_name =
   ( if len > 255 then
     fail (Format.sprintf "Domain attribute length exceeds 255 characters")
   else return (String.concat "." subdomain) )
-  <?> "domain_value"
+  <?> "domain_name"
 
 (*
      IPv4address = d8 "." d8 "." d8 "." d8
@@ -386,7 +386,8 @@ let ipv6_address =
     return ip
   with Invalid_IPv6 s -> fail s
 
-let domain_value = domain_name <|> ipv4_address <|> ipv6_address
+let domain_value =
+  domain_name <|> ipv4_address <|> ipv6_address <?> "domain_value"
 
 let cookie_attr_value =
   take_while1 (function
