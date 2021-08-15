@@ -616,7 +616,7 @@ let create ?path ?domain ?expires ?max_age ?(secure = false)
     ?(http_only = false) ?same_site ?extension ~name value =
   let* name = parse_name name in
   let* value = parse_value value in
-  let* domain = parse_opt domain_value domain in
+  let* domain = parse_opt ~error_label:"domain" domain_value domain in
   let* path = parse_opt ~error_label:"path" path_value path in
   let* max_age = parse_max_age max_age in
   let+ extension =
