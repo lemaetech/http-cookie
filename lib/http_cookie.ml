@@ -342,8 +342,8 @@ let _ipv6_address =
   let len = List.length ip_parts in
   let exception Invalid_IPv6 of string in
   let validate_ipv4 () =
-    let is_ipv4_last = is_ipv4 @@ List.nth ip_parts (len - 1) in
     if ipv4_exists then
+      let is_ipv4_last = is_ipv4 @@ List.nth ip_parts (len - 1) in
       if is_ipv4_last then ()
       else
         raise
@@ -353,9 +353,8 @@ let _ipv6_address =
                  last component" ) )
     else ()
   in
-  let validate_part_count () =
-    if len = 0 then
-      raise (Invalid_IPv6 (Format.sprintf "Invalid IPv6 address components"))
+  let validate_parts_count () =
+    if len = 0 then raise (Invalid_IPv6 (Format.sprintf "Invalid IPv6 address"))
     else if len = 1 && dbl_colon_exists then ()
     else if dbl_colon_exists && (not ipv4_exists) && len <= 7 then ()
     else if dbl_colon_exists && ipv4_exists && len <= 5 then ()
@@ -363,7 +362,7 @@ let _ipv6_address =
     else raise (Invalid_IPv6 (Format.sprintf "Invalid IPv6 address components"))
   in
   try
-    validate_part_count () ;
+    validate_parts_count () ;
     validate_ipv4 () ;
     let ip =
       if len = 1 then "::"
