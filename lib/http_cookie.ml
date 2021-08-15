@@ -243,17 +243,15 @@ let domain_value =
         else
           fail
             (Format.sprintf
-               "[%s] Invalid 'Domain' cookie attribute value: %s. middle \
-                characters must end with either a letter or a digit"
-               __LOC__
+               "Invalid 'Domain' cookie attribute value: %s. middle characters \
+                must end with either a letter or a digit"
                (string_of_list middle_chars) )
       else if len = 0 then return []
       else
         fail
           (Format.sprintf
-             "[%s] Invalid 'Domain' cookie attribute value: %s. label must 63 \
+             "Invalid 'Domain' cookie attribute value: %s. label must 63 \
               characters or less."
-             __LOC__
              (string_of_list middle_chars) )
     in
     string_of_list (first_char :: middle_chars)
@@ -270,9 +268,7 @@ let domain_value =
   let* end_pos = pos in
   let len = end_pos - start_pos in
   ( if len > 255 then
-    fail
-      (Format.sprintf "[%s] Domain attribute length exceeds 255 characters"
-         __LOC__ )
+    fail (Format.sprintf "Domain attribute length exceeds 255 characters")
   else return (String.concat "." subdomain) )
   <?> "domain_value"
 
@@ -312,12 +308,10 @@ let ipv4_address =
                  / [ *4(h16 ":") h16 ] "::"            ls32
                  / [ *5(h16 ":") h16 ] "::"             h16
                  / [ *6(h16 ":") h16 ] "::"
-
            ls32 = h16 ":" h16 / IPv4address
-
            h16  = 1*4HEXDIG
 *)
-let ipv6_address =
+let _ipv6_address =
   let h16 =
     let* hexdigits =
       take_while1 (function
@@ -329,47 +323,60 @@ let ipv6_address =
     if String.length hexdigits <= 4 then return (`H16 hexdigits)
     else
       fail
-        (Format.sprintf "[%s] ipv6 [h16] must be from 1 to 4 hex digits: %s"
-           __LOC__ hexdigits )
+        (Format.sprintf "IPv6 component must be 1 to 4 hex digits long: %s"
+           hexdigits )
   in
-  let double_colon = string "::" *> return [`Dbl_colon] in
-  let is_ipv4 = function `Ipv4 _ -> true | _ -> false in
+  let dbl_colon = string "::" *> return [`Dbl_colon] in
   let* ip_parts =
     let h16s = sep_by (char ':') h16 in
-    let ipv4 = ipv4_address >>| fun ipv4 -> [`Ipv4 ipv4] in
-    many1 (h16s <|> double_colon <|> ipv4) >>| List.concat
+    let ipv4 = ipv4_address >>| fun ipv4 -> [`IPv4 ipv4] in
+    many1 (h16s <|> dbl_colon <|> ipv4) >>| List.concat
   in
   let dbl_colon_exists =
-    List.exists (function `Dbl_colon -> true | _ -> false) ip_parts
+    List.exists
+      (function `Dbl_colon -> true | `IPv4 _ | `H16 _ -> false)
+      ip_parts
   in
+  let is_ipv4 = function `IPv4 _ -> true | `Dbl_colon | `H16 _ -> false in
   let ipv4_exists = List.exists is_ipv4 ip_parts in
   let len = List.length ip_parts in
-  let exception Invalid_ipv6 of string in
+  let exception Invalid_IPv6 of string in
   let validate_ipv4 () =
     let is_ipv4_last = is_ipv4 @@ List.nth ip_parts (len - 1) in
     if ipv4_exists then
       if is_ipv4_last then ()
       else
         raise
-          (Invalid_ipv6
+          (Invalid_IPv6
              (Format.sprintf
-                "[%s] Invalid IPv6 address. IP v4 if specified must be the \
-                 last component."
-                __LOC__ ) )
+                "Invalid IPv6 address. If IP v4 is specified, it must be the \
+                 last component" ) )
     else ()
   in
   let validate_part_count () =
-    if len = 1 && dbl_colon_exists then ()
+    if len = 0 then
+      raise (Invalid_IPv6 (Format.sprintf "Invalid IPv6 address components"))
+    else if len = 1 && dbl_colon_exists then ()
     else if dbl_colon_exists && (not ipv4_exists) && len <= 7 then ()
     else if dbl_colon_exists && ipv4_exists && len <= 5 then ()
     else if (not dbl_colon_exists) && (not ipv4_exists) && len = 8 then ()
-    else
-      raise
-        (Invalid_ipv6
-           (Format.sprintf "[%s] Invalid IPv6 address components." __LOC__) )
+    else raise (Invalid_IPv6 (Format.sprintf "Invalid IPv6 address components"))
   in
-  try validate_part_count () ; validate_ipv4 () ; return ip_parts
-  with Invalid_ipv6 s -> fail s
+  try
+    validate_part_count () ;
+    validate_ipv4 () ;
+    let ip =
+      if len = 1 then "::"
+      else
+        ip_parts
+        |> List.mapi (fun i -> function
+             | `H16 h16 -> h16
+             | `IPv4 ipv4 -> ipv4
+             | `Dbl_colon -> if i = 0 || i = len - 1 then ":" else "" )
+        |> String.concat ":"
+    in
+    return ip
+  with Invalid_IPv6 s -> fail s
 
 let cookie_attr_value =
   take_while1 (function
@@ -418,7 +425,7 @@ let http_date =
     try return (int_of_string digits)
     with exn ->
       fail
-        (Format.sprintf "[%s] Invalid integer value:%s. %s" __LOC__ digits
+        (Format.sprintf "Invalid integer value:%s. %s" digits
            (Printexc.to_string exn) )
   in
   let time =
@@ -429,9 +436,9 @@ let http_date =
       else
         fail
         @@ Format.sprintf
-             "[%s] Invalid hour value: %d. Hour must be in between 0 and 23 \
+             "Invalid hour value: %d. Hour must be in between 0 and 23 \
               inclusive"
-             __LOC__ hour
+             hour
     in
     let* mm =
       digits 2 <* char ':'
@@ -440,9 +447,9 @@ let http_date =
       else
         fail
         @@ Format.sprintf
-             "[%s] Invalid minutes value: %d. Minutes must be in between 0 and \
-              59 inclusive"
-             __LOC__ minutes
+             "Invalid minutes value: %d. Minutes must be in between 0 and 59 \
+              inclusive"
+             minutes
     in
     let+ ss =
       digits 2
@@ -451,9 +458,9 @@ let http_date =
       else
         fail
         @@ Format.sprintf
-             "[%s] Invalid seconds value: %d. Seconds must be in between 0 and \
-              59 inclusive"
-             __LOC__ seconds
+             "Invalid seconds value: %d. Seconds must be in between 0 and 59 \
+              inclusive"
+             seconds
     in
     (hh, mm, ss)
   in
@@ -472,9 +479,7 @@ let http_date =
       else year
     in
     if year < 1601 then
-      fail
-        (Format.sprintf "[%s] Invalid year: %d. Year is less than 1601" __LOC__
-           year )
+      fail (Format.sprintf "Invalid year: %d. Year is less than 1601" year)
     else return year
   in
   let day_of_month day =
@@ -482,9 +487,9 @@ let http_date =
     else
       fail
         (Format.sprintf
-           "[%s] Invalid day of month: %d. Day of month must be in between 1 \
-            and 31 inclusive."
-           __LOC__ day )
+           "Invalid day of month: %d. Day of month must be in between 1 and 31 \
+            inclusive."
+           day )
   in
   let date1 =
     let* day = digits 2 <* space >>= day_of_month in
@@ -532,7 +537,7 @@ let max_age_value =
   ( try return (Int64.of_string max_age)
     with exn ->
       fail
-        (Format.sprintf "[%s] Invalid max_age value:%s. %s" __LOC__ max_age
+        (Format.sprintf "Invalid max_age value:%s. %s" max_age
            (Printexc.to_string exn) ) )
   <?> "max_age_value"
 
@@ -574,8 +579,7 @@ let parse_max_age max_age =
       if ma <= 0L then
         Error
           (Format.sprintf
-             "[%s] Cookies 'Max-Age' attribute is less than or equal to 0"
-             __LOC__ )
+             "Cookies 'Max-Age' attribute is less than or equal to 0" )
       else Ok (Some ma)
 
 let parse p input =
@@ -589,31 +593,23 @@ let ( let+ ) r f = Result.map f r
 let date_time ~year ~month ~weekday ~day ~hour ~minutes ~seconds =
   let* year =
     if year > 0 && year < 9999 then Ok year
-    else
-      Error (Format.sprintf "[%s] Invalid year (>0 && < 9999): %d" __LOC__ year)
+    else Error (Format.sprintf "Invalid year (>0 && < 9999): %d" year)
   in
   let* day =
     if day > 0 && day <= 31 then Ok day
-    else
-      Error
-        (Format.sprintf "[%s] Invalid day of month ( > 0 && <= 31): %d" __LOC__
-           day )
+    else Error (Format.sprintf "Invalid day of month ( > 0 && <= 31): %d" day)
   in
   let* hour =
     if hour > 0 && hour < 24 then Ok hour
-    else Error (Format.sprintf "[%s] Invalid hour (>0 && <24): %d" __LOC__ hour)
+    else Error (Format.sprintf "Invalid hour (>0 && <24): %d" hour)
   in
   let* minutes =
     if minutes >= 0 && minutes < 60 then Ok minutes
-    else
-      Error
-        (Format.sprintf "[%s] Invalid minutes (>=0 && < 60): %d" __LOC__ minutes)
+    else Error (Format.sprintf "Invalid minutes (>=0 && < 60): %d" minutes)
   in
   let* seconds =
     if seconds >= 0 && seconds < 60 then Ok seconds
-    else
-      Error
-        (Format.sprintf "[%s] Invalid seconds (>=0 && < 60): %d" __LOC__ seconds)
+    else Error (Format.sprintf "Invalid seconds (>=0 && < 60): %d" seconds)
   in
   Ok {year; month; weekday; day; hour; minutes; seconds}
 
