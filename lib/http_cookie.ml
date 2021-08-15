@@ -182,7 +182,7 @@ let token =
         false (* SEPARATOR chars *)
     | _ -> true )
 
-let cookie_name = token <?> "cookie_name"
+let cookie_name = token
 
 let cookie_value =
   let cookie_octet = function
@@ -546,7 +546,13 @@ let set_cookie_string =
    cookie-string = cookie-pair *( ";" SP cookie-pair )
 *)
 let cookie_string = sep_by1 (char ';' *> char '\x20') cookie_pair
-let parse_name name = parse_string ~consume:Consume.All cookie_name name
+
+let parse_name name =
+  parse_string ~consume:Consume.All cookie_name name
+  |> function
+  | Ok _ as ok -> ok
+  | Error _ -> Error (Format.sprintf "Invalid cookie name: %s" name)
+
 let parse_value value = parse_string ~consume:Consume.All cookie_value value
 
 let parse_max_age max_age =

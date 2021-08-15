@@ -1,8 +1,7 @@
 let () = Printexc.record_backtrace false
 
 let print_date_time r =
-  Fmt.result ~ok:Http_cookie.pp_date_time ~error:Fmt.string Format.std_formatter
-    r
+  Fmt.result ~ok:Http_cookie.pp_date_time ~error:Fmt.string Fmt.stdout r
 
 let%expect_test "date_time: year 0 " =
   Http_cookie.date_time ~year:0 ~month:`Jan ~weekday:`Sun ~day:23 ~hour:22
@@ -116,3 +115,23 @@ let%expect_test "date_time: seconds -1" =
   [%expect {| Invalid seconds (>=0 && < 60): -1 |}]
 
 (* create tests *)
+let pp_t t = Fmt.result ~ok:Http_cookie.pp ~error:Fmt.string Fmt.stdout t
+
+let%expect_test "create: hello, world" =
+  Http_cookie.create ~name:"hello" "world" |> pp_t ;
+  [%expect
+    {|
+    name: hello
+    value: world
+    path:
+    domain:
+    expires:
+    max_age:
+    secure: false
+    http_only: false
+    same_site:
+    extension: |}]
+
+let%expect_test "create: path: he@llo" =
+  Http_cookie.create ~name:"he@llo" "world" |> pp_t ;
+  [%expect {| Invalid cookie name: he@llo |}]
