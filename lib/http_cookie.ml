@@ -225,8 +225,12 @@ let cookie_pair =
     <digit> ::= any one of the ten digits 0 through 9
 *)
 let string_of_list l = List.to_seq l |> String.of_seq
-let is_digit = function '0' .. '9' -> true | _ -> false
-let is_letter = function 'a' .. 'z' | 'A' .. 'Z' -> true | _ -> false
+let[@inline always] is_digit = function '0' .. '9' -> true | _ -> false
+
+let[@inline always] is_letter = function
+  | 'a' .. 'z' | 'A' .. 'Z' -> true
+  | _ -> false
+
 let digit = satisfy is_digit
 let letter = satisfy is_letter
 let space = char ' '
@@ -341,12 +345,13 @@ let ipv6_address =
   let dbl_colon = string "::" *> return `Dbl_colon in
   let* ip_parts =
     let ipv4 = ipv4_address >>| fun ipv4 -> `IPv4 ipv4 in
+    let[@inline always] not_empty s = String.length s > 0 in
     let p =
-      peek_string 2
+      option "" (peek_string 2)
       >>= fun s ->
       match s with
       | "::" -> dbl_colon
-      | s when s.[0] = ':' -> char ':' *> (ipv4 <|> h16)
+      | s when not_empty s && s.[0] = ':' -> char ':' *> (ipv4 <|> h16)
       | _ -> ipv4 <|> h16
     in
     many1 p

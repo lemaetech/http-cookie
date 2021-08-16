@@ -187,8 +187,70 @@ let%expect_test "create: name=hello,value=world, domain=::" =
 
 let%expect_test "create: name=hello,value=world, domain=::1" =
   Http_cookie.create ~path:"/hello" ~domain:"::1" ~name:"hello" "world" |> pp_t ;
-  [%expect {|
-    Error: domain: ::1 |}]
+  [%expect
+    {|
+    name: hello
+    value: world
+    path: /hello
+    domain: ::1
+    expires:
+    max_age:
+    secure: false
+    http_only: false
+    same_site:
+    extension: |}]
+
+let%expect_test "create: name=hello,value=world, \
+                 domain=2002:2c26:f4e4:0:21c:42ff:fe20:4636" =
+  Http_cookie.create ~path:"/hello"
+    ~domain:"2002:2c26:f4e4:0:21c:42ff:fe20:4636" ~name:"hello" "world"
+  |> pp_t ;
+  [%expect
+    {|
+    name: hello
+    value: world
+    path: /hello
+    domain: 2002:2c26:f4e4:0:21c:42ff:fe20:4636
+    expires:
+    max_age:
+    secure: false
+    http_only: false
+    same_site:
+    extension: |}]
+
+let%expect_test "create: name=hello,value=world, domain=fec0::1" =
+  Http_cookie.create ~path:"/hello" ~domain:"fec0::1" ~name:"hello" "world"
+  |> pp_t ;
+  [%expect
+    {|
+    name: hello
+    value: world
+    path: /hello
+    domain: fec0::1
+    expires:
+    max_age:
+    secure: false
+    http_only: false
+    same_site:
+    extension: |}]
+
+let%expect_test "create: name=hello,value=world, domain=fe80::215:5dff:fe00:402"
+    =
+  Http_cookie.create ~path:"/hello" ~domain:"fe80::215:5dff:fe00:402"
+    ~name:"hello" "world"
+  |> pp_t ;
+  [%expect
+    {|
+    name: hello
+    value: world
+    path: /hello
+    domain: fe80::215:5dff:fe00:402
+    expires:
+    max_age:
+    secure: false
+    http_only: false
+    same_site:
+    extension: |}]
 
 let%expect_test "create: name=hello,value=world, \
                  domain=2002:2c26:f4e4:0:21c:42ff:fe20:4636" =
