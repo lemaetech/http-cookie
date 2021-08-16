@@ -120,7 +120,7 @@ let pp_t t =
     ~error:(fun fmt s -> Fmt.pf fmt "Error: %s" s)
     Fmt.stdout t
 
-let%expect_test "create: name=hello,value=world" =
+let%expect_test "create: name=hello,value=world, domain= eeee::192.168.0.1" =
   Http_cookie.create ~path:"/hello" ~domain:"eeee::192.168.0.1" ~name:"hello"
     "world"
   |> pp_t ;
@@ -130,6 +130,77 @@ let%expect_test "create: name=hello,value=world" =
     value: world
     path: /hello
     domain: eeee::192.168.0.1
+    expires:
+    max_age:
+    secure: false
+    http_only: false
+    same_site:
+    extension: |}]
+
+let%expect_test "create: name=hello,value=world, domain=10.105.128.1" =
+  Http_cookie.create ~path:"/hello" ~domain:"10.105.128.1" ~name:"hello" "world"
+  |> pp_t ;
+  [%expect
+    {|
+    name: hello
+    value: world
+    path: /hello
+    domain: 10.105.128.1
+    expires:
+    max_age:
+    secure: false
+    http_only: false
+    same_site:
+    extension: |}]
+
+let%expect_test "create: name=hello,value=world, domain=152.186.220.254" =
+  Http_cookie.create ~path:"/hello" ~domain:"152.186.220.254" ~name:"hello"
+    "world"
+  |> pp_t ;
+  [%expect
+    {|
+    name: hello
+    value: world
+    path: /hello
+    domain: 152.186.220.254
+    expires:
+    max_age:
+    secure: false
+    http_only: false
+    same_site:
+    extension: |}]
+
+let%expect_test "create: name=hello,value=world, domain=::" =
+  Http_cookie.create ~path:"/hello" ~domain:"::" ~name:"hello" "world" |> pp_t ;
+  [%expect
+    {|
+    name: hello
+    value: world
+    path: /hello
+    domain: ::
+    expires:
+    max_age:
+    secure: false
+    http_only: false
+    same_site:
+    extension: |}]
+
+let%expect_test "create: name=hello,value=world, domain=::1" =
+  Http_cookie.create ~path:"/hello" ~domain:"::1" ~name:"hello" "world" |> pp_t ;
+  [%expect {|
+    Error: domain: ::1 |}]
+
+let%expect_test "create: name=hello,value=world, \
+                 domain=2002:2c26:f4e4:0:21c:42ff:fe20:4636" =
+  Http_cookie.create ~path:"/hello"
+    ~domain:"2002:2c26:f4e4:0:21c:42ff:fe20:4636" ~name:"hello" "world"
+  |> pp_t ;
+  [%expect
+    {|
+    name: hello
+    value: world
+    path: /hello
+    domain: 2002:2c26:f4e4:0:21c:42ff:fe20:4636
     expires:
     max_age:
     secure: false
