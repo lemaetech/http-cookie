@@ -1,4 +1,4 @@
-## v4.0.0 2021-08-12 
+## v4.0.0 2021-08-16 
 
 - [BREAKING-CHANGE] remove module `Same_site`. Use `same_site` type instead.
 - [New] introduce type `same_site` to replace `Same_site` module and to better conform to RFC 6265.
@@ -10,6 +10,8 @@
 - [BREAKING-CHANGE] `to_cookie_header_value` has been removed. Use `to_cookie` instead.
 - [BREAKING-CHANGE] `of_cookie_header` has been removed, Use`of_cookie` instead.
 - [BREAKING-CHANGE] remove `Cookie` exception. The library is now exception less, i.e. uses `result` type to denote error scenarios.
+- [New] add `of_set_cookie` to parse HTTP `Set-Cookie` header
+- Add expect tests
 
 ## v3.1.0 2021-08-11 
 
