@@ -10,7 +10,12 @@ HTTP cookies are serialized as follows:
 The library supports consuming and creating HTTP cookies in both requests
 and responses.
 
-The standard implemented by the library is [RFC 6265](https://tools.ietf.org/html/rfc6265).
+The standards implemented by the library is 
+- [Cookies - RFC 6265](https://tools.ietf.org/html/rfc6265)
+- [HTTP Date - RFC 1123](https://datatracker.ietf.org/doc/html/rfc1123) 
+- [Domain Name - RFC 1034](https://datatracker.ietf.org/doc/html/rfc1034#section-3.5)
+- [Hosts - RFC 1123](https://datatracker.ietf.org/doc/html/rfc1123#section-2.1)
+- [IPv4/IPv6](https://datatracker.ietf.org/doc/html/draft-main-ipaddr-text-rep-02#section-3})
 
 [API Documentation](https://lemaetech.co.uk/http-cookie/)
 

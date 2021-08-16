@@ -18,8 +18,15 @@
     The library supports consuming and creating HTTP cookie in both requests and
     responses.
 
-    The standard implemented by the library is
-    {{:https://tools.ietf.org/html/rfc6265} RFC 6265}. *)
+    The standards implemented by the library is
+
+    + {{:https://tools.ietf.org/html/rfc6265} RFC 6265 - Cookies}.
+    + {{:https://datatracker.ietf.org/doc/html/rfc1123} Section 3.3.1 - HTTP
+      Date}
+    + {{:https://datatracker.ietf.org/doc/html/rfc1034#section-3.5} Domain Name}
+    + {{:https://datatracker.ietf.org/doc/html/rfc1123#section-2.1} Hosts}
+    + {{:https://datatracker.ietf.org/doc/html/draft-main-ipaddr-text-rep-02#section-3}
+      IPv4/IPv6 Address} *)
 
 (** A HTTP cookie. *)
 type t
