@@ -380,3 +380,52 @@ let%expect_test "create: max_age=23323" =
     http_only: false
     same_site:
     extension: |}]
+
+(* of_cookie tests *)
+let pp_t_list t =
+  Fmt.vbox
+    (Fmt.result
+       ~ok:
+         (Fmt.list
+            ~sep:(fun fmt _ -> Fmt.pf fmt "@.@.")
+            (Fmt.vbox Http_cookie.pp) )
+       ~error:(fun fmt s -> Fmt.pf fmt "Error: %s" s) )
+    Fmt.stdout t
+
+let%expect_test "of_cookie: SID=31d4d96e407aad42; lang=en-US" =
+  Http_cookie.of_cookie "SID=31d4d96e407aad42; lang=en-US" |> pp_t_list ;
+  [%expect
+    {|
+    name: SID
+    value: 31d4d96e407aad42
+    path:
+    domain:
+    expires:
+    max_age:
+    secure: false
+    http_only: false
+    same_site:
+    extension:
+
+    name: lang
+    value: en-US
+    path:
+    domain:
+    expires:
+    max_age:
+    secure: false
+    http_only: false
+    same_site:
+    extension: |}]
+
+let%expect_test "of_cookie: SID=,31d4d96e407aad42; lang=en-US" =
+  Http_cookie.of_cookie "SID=,31d4d96e407aad42; lang=en-US" |> pp_t_list ;
+  [%expect {| Error: : end_of_input |}]
+
+let%expect_test "of_cookie: SID= 31d4d96e407aad42; lang=en-US" =
+  Http_cookie.of_cookie "SID= 31d4d96e407aad42; lang=en-US" |> pp_t_list ;
+  [%expect {| Error: : end_of_input |}]
+
+let%expect_test "of_cookie: SID>=31d4d96e407aad42; lang=en-US" =
+  Http_cookie.of_cookie "SID>=31d4d96e407aad42; lang=en-US" |> pp_t_list ;
+  [%expect {| Error: : char '=' |}]
