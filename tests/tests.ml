@@ -309,3 +309,70 @@ let%expect_test "create: value=val,dd (',' is invalid)" =
 let%expect_test "create: path=val;dd (';' is invalid)" =
   Http_cookie.create ~path:"val;dd" ~name:"hello" "value" |> pp_t ;
   [%expect {| Error: path: val;dd |}]
+
+let%expect_test "create: path=\x00valdd ('\x00' is invalid)" =
+  Http_cookie.create ~path:"\x00valdd" ~name:"hello" "value" |> pp_t ;
+  [%expect {| Error: path: \000valdd |}]
+
+let%expect_test "create: path=val dd" =
+  Http_cookie.create ~path:"val dd" ~name:"hello" "value" |> pp_t ;
+  [%expect
+    {|
+    name: hello
+    value: value
+    path: val dd
+    domain:
+    expires:
+    max_age:
+    secure: false
+    http_only: false
+    same_site:
+    extension: |}]
+
+(* extension tests*)
+let%expect_test "create: extension=val;dd (';' is invalid)" =
+  Http_cookie.create ~extension:"val;dd" ~name:"hello" "value" |> pp_t ;
+  [%expect {| Error: extension: val;dd |}]
+
+let%expect_test "create: extension=\x00valdd ('\x00' is invalid)" =
+  Http_cookie.create ~extension:"\x00valdd" ~name:"hello" "value" |> pp_t ;
+  [%expect {| Error: extension: \000valdd |}]
+
+let%expect_test "create: extension=val dd" =
+  Http_cookie.create ~extension:"val dd" ~name:"hello" "value" |> pp_t ;
+  [%expect
+    {|
+    name: hello
+    value: value
+    path:
+    domain:
+    expires:
+    max_age:
+    secure: false
+    http_only: false
+    same_site:
+    extension: val dd |}]
+
+(* max_age tests*)
+let%expect_test "create: max_age=0" =
+  Http_cookie.create ~max_age:0L ~name:"hello" "value" |> pp_t ;
+  [%expect {| Error: Cookies 'Max-Age' attribute is less than or equal to 0 |}]
+
+let%expect_test "create: max_age=-1" =
+  Http_cookie.create ~max_age:(-1L) ~name:"hello" "value" |> pp_t ;
+  [%expect {| Error: Cookies 'Max-Age' attribute is less than or equal to 0 |}]
+
+let%expect_test "create: max_age=23323" =
+  Http_cookie.create ~max_age:23323L ~name:"hello" "value" |> pp_t ;
+  [%expect
+    {|
+    name: hello
+    value: value
+    path:
+    domain:
+    expires:
+    max_age: 23323
+    secure: false
+    http_only: false
+    same_site:
+    extension: |}]

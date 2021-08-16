@@ -601,7 +601,7 @@ let parse_opt ?error_label p input =
       | Ok _ as ok -> ok
       | Error err ->
           let error_label = Option.value ~default:err error_label in
-          Error (Format.sprintf "%s: %s" error_label input) )
+          Error (Format.sprintf "%s: %s" error_label (String.escaped input)) )
   | None -> Ok None
 
 let ( let* ) r f = Result.bind r f
