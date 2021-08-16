@@ -279,6 +279,7 @@ let%expect_test "create:  domain=2333::ddd::1" =
   [%expect {|
     Error: domain: 2333::ddd::1 |}]
 
+(* name tests *)
 let%expect_test "create: name=he@llo" =
   Http_cookie.create ~name:"he@llo" "world" |> pp_t ;
   [%expect {| Error: name: he@llo |}]
@@ -295,6 +296,7 @@ let%expect_test "create: name=he<llo" =
   Http_cookie.create ~name:"he<llo" "world" |> pp_t ;
   [%expect {| Error: name: he<llo |}]
 
+(* value tests *)
 let%expect_test "create: value=val dd (space ' ' is invalid)" =
   Http_cookie.create ~name:"hello" "val dd" |> pp_t ;
   [%expect {| Error: value: val dd |}]
@@ -303,6 +305,7 @@ let%expect_test "create: value=val,dd (',' is invalid)" =
   Http_cookie.create ~name:"hello" "val,dd" |> pp_t ;
   [%expect {| Error: value: val,dd |}]
 
+(* path tests *)
 let%expect_test "create: path=val;dd (';' is invalid)" =
   Http_cookie.create ~path:"val;dd" ~name:"hello" "value" |> pp_t ;
   [%expect {| Error: path: val;dd |}]
