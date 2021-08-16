@@ -338,11 +338,18 @@ let ipv6_address =
         (Format.sprintf "IPv6 component must be 1 to 4 hex digits long: %s"
            hexdigits )
   in
-  let dbl_colon = string "::" *> return [`Dbl_colon] in
+  let dbl_colon = string "::" *> return `Dbl_colon in
   let* ip_parts =
-    let h16s = sep_by (char ':') h16 in
-    let ipv4 = ipv4_address >>| fun ipv4 -> [`IPv4 ipv4] in
-    many1 (h16s <|> dbl_colon <|> ipv4) >>| List.concat
+    let ipv4 = ipv4_address >>| fun ipv4 -> `IPv4 ipv4 in
+    let p =
+      peek_string 2
+      >>= fun s ->
+      match s with
+      | "::" -> dbl_colon
+      | s when s.[0] = ':' -> char ':' *> (ipv4 <|> h16)
+      | _ -> ipv4 <|> h16
+    in
+    many1 p
   in
   let dbl_colon_exists =
     List.exists
@@ -366,16 +373,16 @@ let ipv6_address =
     else ()
   in
   let validate_parts_count () =
-    if len = 0 then raise (Invalid_IPv6 (Format.sprintf "Invalid IPv6 address"))
-    else if len = 1 && dbl_colon_exists then ()
+    if len = 1 && dbl_colon_exists then ()
     else if dbl_colon_exists && (not ipv4_exists) && len <= 7 then ()
     else if dbl_colon_exists && ipv4_exists && len <= 5 then ()
     else if (not dbl_colon_exists) && (not ipv4_exists) && len = 8 then ()
+    else if (not dbl_colon_exists) && ipv4_exists && len <= 6 then ()
     else raise (Invalid_IPv6 (Format.sprintf "Invalid IPv6 address components"))
   in
   try
-    validate_parts_count () ;
     validate_ipv4 () ;
+    validate_parts_count () ;
     let ip =
       if len = 1 then "::"
       else
@@ -389,7 +396,7 @@ let ipv6_address =
     return ip
   with Invalid_IPv6 s -> fail s
 
-let domain_value = domain_name <|> ipv4_address <|> ipv6_address
+let domain_value = ipv4_address <|> ipv6_address <|> domain_name
 
 let cookie_attr_value =
   take_while1 (function
