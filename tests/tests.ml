@@ -429,3 +429,133 @@ let%expect_test "of_cookie: SID= 31d4d96e407aad42; lang=en-US" =
 let%expect_test "of_cookie: SID>=31d4d96e407aad42; lang=en-US" =
   Http_cookie.of_cookie "SID>=31d4d96e407aad42; lang=en-US" |> pp_t_list ;
   [%expect {| Error: : char '=' |}]
+
+(* to_cookie tests*)
+let pp_to_cookie c =
+  Fmt.result ~error:Fmt.string
+    ~ok:(fun fmt c -> Fmt.pf fmt "%s" (Http_cookie.to_cookie c))
+    Fmt.stdout c
+
+let%expect_test "to_cookie: SID=31d4d96e407aad42" =
+  Http_cookie.create ~name:"SID" "31asdfasddd" |> pp_to_cookie ;
+  [%expect {| SID=31asdfasddd |}]
+
+(* of_set_cookie tests *)
+let%expect_test "of_set_cookie: " =
+  Http_cookie.of_set_cookie
+    "SID=31d4d96e407aad42; Path=/; Domain=example.com; Secure; HttpOnly; \
+     Expires=Sun, 06 Nov 1994 08:49:37 GMT"
+  |> pp_t ;
+  [%expect
+    {|
+    name: SID
+    value: 31d4d96e407aad42
+    path: /
+    domain: example.com
+    expires: Sun, 06 Nov 1994 08:49:37 GMT
+    max_age:
+    secure: true
+    http_only: true
+    same_site:
+    extension: |}]
+
+let%expect_test "of_set_cookie: " =
+  Http_cookie.of_set_cookie
+    "SID=31d4d96e407aad42; Path=/; Domain=192.169.0.1; Secure; HttpOnly; \
+     Expires=Sun, 06 Nov 1994 08:49:37 GMT"
+  |> pp_t ;
+  [%expect
+    {|
+    name: SID
+    value: 31d4d96e407aad42
+    path: /
+    domain: 192.169.0.1
+    expires: Sun, 06 Nov 1994 08:49:37 GMT
+    max_age:
+    secure: true
+    http_only: true
+    same_site:
+    extension: |}]
+
+let%expect_test "of_set_cookie: " =
+  Http_cookie.of_set_cookie
+    "SID=31d4d96e407aad42; Path=/; Domain=eee::eee:ffff:234; Secure; HttpOnly; \
+     Expires=Sun, 06 Nov 1994 08:49:37 GMT"
+  |> pp_t ;
+  [%expect
+    {|
+    name: SID
+    value: 31d4d96e407aad42
+    path: /
+    domain: eee::eee:ffff:234
+    expires: Sun, 06 Nov 1994 08:49:37 GMT
+    max_age:
+    secure: true
+    http_only: true
+    same_site:
+    extension: |}]
+
+(* to_set_cookie tests *)
+
+let pp_to_set_cookie c = Printf.printf "%s" (Http_cookie.to_set_cookie c)
+
+let%expect_test "to_set_cookie" =
+  let expires =
+    Http_cookie.date_time ~year:2021 ~month:`Jan ~weekday:`Mon ~day:12 ~hour:23
+      ~minutes:23 ~seconds:59
+    |> Result.get_ok
+  in
+  Http_cookie.create ~path:"/home/about" ~domain:"example.com" ~expires
+    ~max_age:2342342L ~secure:true ~http_only:true ~same_site:`Strict
+    ~name:"hello" "value1"
+  |> Result.get_ok |> pp_to_set_cookie ;
+  [%expect
+    {| hello=value1; Path=/home/about; Domain=example.com; Expires=Mon, 12 Jan 2021 23:23:59 GMT; Max-Age=2342342; Secure; HttpOnly; SameSite=Strict |}]
+
+let%expect_test "to_set_cookie" =
+  let expires =
+    Http_cookie.date_time ~year:2021 ~month:`Jan ~weekday:`Mon ~day:12 ~hour:23
+      ~minutes:23 ~seconds:59
+    |> Result.get_ok
+  in
+  Http_cookie.create ~path:"/home/about" ~domain:"example.com" ~expires
+    ~max_age:2342342L ~http_only:true ~same_site:`Strict ~name:"hello" "value1"
+  |> Result.get_ok |> pp_to_set_cookie ;
+  [%expect
+    {| hello=value1; Path=/home/about; Domain=example.com; Expires=Mon, 12 Jan 2021 23:23:59 GMT; Max-Age=2342342; HttpOnly; SameSite=Strict |}]
+
+let%expect_test "to_set_cookie" =
+  let expires =
+    Http_cookie.date_time ~year:2021 ~month:`Jan ~weekday:`Mon ~day:12 ~hour:23
+      ~minutes:23 ~seconds:59
+    |> Result.get_ok
+  in
+  Http_cookie.create ~path:"/home/about" ~domain:"example.com" ~expires
+    ~max_age:2342342L ~same_site:`Strict ~name:"hello" "value1"
+  |> Result.get_ok |> pp_to_set_cookie ;
+  [%expect
+    {| hello=value1; Path=/home/about; Domain=example.com; Expires=Mon, 12 Jan 2021 23:23:59 GMT; Max-Age=2342342; SameSite=Strict |}]
+
+let%expect_test "to_set_cookie" =
+  let expires =
+    Http_cookie.date_time ~year:2021 ~month:`Jan ~weekday:`Mon ~day:12 ~hour:23
+      ~minutes:23 ~seconds:59
+    |> Result.get_ok
+  in
+  Http_cookie.create ~path:"/home/about" ~domain:"example.com" ~expires
+    ~max_age:2342342L ~same_site:`Lax ~name:"hello" "value1"
+  |> Result.get_ok |> pp_to_set_cookie ;
+  [%expect
+    {| hello=value1; Path=/home/about; Domain=example.com; Expires=Mon, 12 Jan 2021 23:23:59 GMT; Max-Age=2342342; SameSite=Lax |}]
+
+let%expect_test "to_set_cookie" =
+  let expires =
+    Http_cookie.date_time ~year:2021 ~month:`Jan ~weekday:`Mon ~day:12 ~hour:23
+      ~minutes:23 ~seconds:59
+    |> Result.get_ok
+  in
+  Http_cookie.create ~path:"/home/about" ~domain:"198.168.0.1" ~expires
+    ~max_age:2342342L ~same_site:`None ~name:"hello" "value1"
+  |> Result.get_ok |> pp_to_set_cookie ;
+  [%expect
+    {| hello=value1; Path=/home/about; Domain=198.168.0.1; Expires=Mon, 12 Jan 2021 23:23:59 GMT; Max-Age=2342342; SameSite=None |}]
