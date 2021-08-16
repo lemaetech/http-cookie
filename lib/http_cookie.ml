@@ -377,6 +377,18 @@ let ipv6_address =
                  last component" ) )
     else ()
   in
+  let validate_dbl_colons () =
+    let len =
+      List.find_all (function `Dbl_colon -> true | _ -> false) ip_parts
+      |> List.length
+    in
+    if len > 1 then
+      raise
+        (Invalid_IPv6
+           (Format.sprintf "Invalid IPv6 address. '::' is only allowed once.")
+        )
+    else ()
+  in
   let validate_parts_count () =
     if len = 1 && dbl_colon_exists then ()
     else if dbl_colon_exists && (not ipv4_exists) && len <= 7 then ()
@@ -386,6 +398,7 @@ let ipv6_address =
     else raise (Invalid_IPv6 (Format.sprintf "Invalid IPv6 address components"))
   in
   try
+    validate_dbl_colons () ;
     validate_ipv4 () ;
     validate_parts_count () ;
     let ip =
