@@ -1,4 +1,6 @@
-(lang dune 2.9)
+(lang dune 2.8)
+
+; TODO use 2.9 once dune 2.9.1 is available in opam. 
 
 (name http-cookie)
 

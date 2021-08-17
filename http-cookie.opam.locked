@@ -67,7 +67,7 @@ depends: [
   "uutf" {= "1.0.2" & with-doc}
 ]
 build: [
-  ["dune" "subst" "--root" "."] {dev}
+  ["dune" "subst"] {dev}
   [
   "dune"
   "build"
@@ -75,12 +75,9 @@ build: [
   name
   "-j"
   jobs
-  "--promote-install-files"
-  "false"
   "@install"
   "@runtest" {with-test}
   "@doc" {with-doc}
 ]
-  ["dune" "install" "-p" name "--create-install-files" name]
 ]
 dev-repo: "git+https://github.com/lemaetech/http-cookie.git"
