@@ -17,7 +17,7 @@ The standards implemented by the library is
 - [Hosts - RFC 1123](https://datatracker.ietf.org/doc/html/rfc1123#section-2.1)
 - [IPv4/IPv6](https://datatracker.ietf.org/doc/html/draft-main-ipaddr-text-rep-02#section-3})
 
-[API Documentation](https://lemaetech.co.uk/http-cookie/)
+[API Documentation](https://lemaetech.co.uk/http-cookie/http-cookie/Http_cookie/index.html)
 
 ## Installation
 
