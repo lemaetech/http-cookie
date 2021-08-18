@@ -4,7 +4,7 @@
 
 (name http-cookie)
 
-(version 4.0.0)
+(version 4.1.0)
 
 (generate_opam_files true)
 
@@ -29,4 +29,7 @@
    (>= 0.8.9))
   (angstrom
    (>= 0.15.0))
-  (ppx_expect :with-test)))
+  (ppx_expect :with-test)
+  (mdx :with-test)))
+
+(using mdx 0.1)

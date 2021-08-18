@@ -382,6 +382,7 @@ let%expect_test "create: max_age=23323" =
     extension: |}]
 
 (* of_cookie tests *)
+
 let pp_t_list t =
   Fmt.vbox
     (Fmt.result
@@ -420,15 +421,20 @@ let%expect_test "of_cookie: SID=31d4d96e407aad42; lang=en-US" =
 
 let%expect_test "of_cookie: SID=,31d4d96e407aad42; lang=en-US" =
   Http_cookie.of_cookie "SID=,31d4d96e407aad42; lang=en-US" |> pp_t_list ;
-  [%expect {| Error: : end_of_input |}]
+  [%expect {| Error: Invalid cookie : end_of_input |}]
 
 let%expect_test "of_cookie: SID= 31d4d96e407aad42; lang=en-US" =
   Http_cookie.of_cookie "SID= 31d4d96e407aad42; lang=en-US" |> pp_t_list ;
-  [%expect {| Error: : end_of_input |}]
+  [%expect {| Error: Invalid cookie : end_of_input |}]
 
 let%expect_test "of_cookie: SID>=31d4d96e407aad42; lang=en-US" =
   Http_cookie.of_cookie "SID>=31d4d96e407aad42; lang=en-US" |> pp_t_list ;
-  [%expect {| Error: : char '=' |}]
+  [%expect {| Error: Invalid cookie : char '=' |}]
+
+let%expect_test "of_cookie: SID>=31d4d96e407aad42; lang=en-US" =
+  Http_cookie.of_cookie "SID=31d4d96e407aad42; SID=val2; lang=en-US"
+  |> pp_t_list ;
+  [%expect {| Error: Invalid cookie : duplicate cookies found |}]
 
 (* to_cookie tests*)
 let pp_to_cookie c =
@@ -494,6 +500,40 @@ let%expect_test "of_set_cookie: " =
     http_only: true
     same_site:
     extension: |}]
+
+let%expect_test "of_set_cookie: " =
+  Http_cookie.of_set_cookie
+    "SID=31d4d96e407aad42; Path=/; Domain=eee::aaa:eee:ffff:234:192.168.0.1; \
+     Secure; HttpOnly; Expires=Sun, 06 Nov 1994 08:49:37 GMT"
+  |> pp_t ;
+  [%expect
+    {|
+    name: SID
+    value: 31d4d96e407aad42
+    path: /
+    domain: eee::aaa:eee:ffff:234:192.168.0.1
+    expires: Sun, 06 Nov 1994 08:49:37 GMT
+    max_age:
+    secure: true
+    http_only: true
+    same_site:
+    extension: |}]
+
+let%expect_test "of_set_cookie: " =
+  Http_cookie.of_set_cookie
+    "SID=31d4d96e407aad42; Path=/; Domain=eee::eee::ffff:234; Secure; \
+     HttpOnly; Expires=Sun, 06 Nov 1994 08:49:37 GMT"
+  |> pp_t ;
+  [%expect {|
+    Error: Invalid 'Set-Cookie' data : end_of_input |}]
+
+let%expect_test "of_set_cookie: " =
+  Http_cookie.of_set_cookie
+    "SID=31d4d96e407aad42; Path=i;; Domain=eee::eee:ffff:234; Secure; \
+     HttpOnly; Expires=Sun, 06 Nov 1994 08:49:37 GMT"
+  |> pp_t ;
+  [%expect {|
+    Error: Invalid 'Set-Cookie' data : end_of_input |}]
 
 (* to_set_cookie tests *)
 

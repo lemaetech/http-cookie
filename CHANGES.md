@@ -1,3 +1,9 @@
+## v4.1.0 2021-08-18 
+
+- [Change] `of_cookie` now validates duplicate cookie keys.
+- [Change] slightly improve error message for `of_cookie` and `of_set_cookie`
+- [Fix]    Fix IPv6 parsing for H16 values.
+
 ## v4.0.0 2021-08-16 
 
 - [BREAKING-CHANGE] remove module `Same_site`. Use `same_site` type instead.

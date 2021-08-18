@@ -363,11 +363,14 @@ let ipv6_address =
   in
   let is_ipv4 = function `IPv4 _ -> true | `Dbl_colon | `H16 _ -> false in
   let ipv4_exists = List.exists is_ipv4 ip_parts in
-  let len = List.length ip_parts in
+  let len' = List.length ip_parts in
+  let h16_len =
+    List.filter (function `H16 _ -> true | _ -> false) ip_parts |> List.length
+  in
   let exception Invalid_IPv6 of string in
   let validate_ipv4 () =
     if ipv4_exists then
-      let is_ipv4_last = is_ipv4 @@ List.nth ip_parts (len - 1) in
+      let is_ipv4_last = is_ipv4 @@ List.nth ip_parts (len' - 1) in
       if is_ipv4_last then ()
       else
         raise
@@ -390,11 +393,11 @@ let ipv6_address =
     else ()
   in
   let validate_parts_count () =
-    if len = 1 && dbl_colon_exists then ()
-    else if dbl_colon_exists && (not ipv4_exists) && len <= 7 then ()
-    else if dbl_colon_exists && ipv4_exists && len <= 5 then ()
-    else if (not dbl_colon_exists) && (not ipv4_exists) && len = 8 then ()
-    else if (not dbl_colon_exists) && ipv4_exists && len <= 6 then ()
+    if len' = 1 && dbl_colon_exists then ()
+    else if dbl_colon_exists && (not ipv4_exists) && h16_len <= 7 then ()
+    else if dbl_colon_exists && ipv4_exists && h16_len <= 5 then ()
+    else if (not dbl_colon_exists) && (not ipv4_exists) && h16_len = 8 then ()
+    else if (not dbl_colon_exists) && ipv4_exists && h16_len <= 6 then ()
     else raise (Invalid_IPv6 (Format.sprintf "Invalid IPv6 address components"))
   in
   try
@@ -402,13 +405,13 @@ let ipv6_address =
     validate_ipv4 () ;
     validate_parts_count () ;
     let ip =
-      if len = 1 then "::"
+      if len' = 1 then "::"
       else
         ip_parts
         |> List.mapi (fun i -> function
              | `H16 h16 -> h16
              | `IPv4 ipv4 -> ipv4
-             | `Dbl_colon -> if i = 0 || i = len - 1 then ":" else "" )
+             | `Dbl_colon -> if i = 0 || i = len' - 1 then ":" else "" )
         |> String.concat ":"
     in
     return ip
@@ -559,7 +562,7 @@ let cookie_av =
   let httponly_av = string "HttpOnly" *> return `Http_only in
   let extension_av = extension_value >>| fun v -> `Extension (Some v) in
   expires_av <|> max_age_av <|> domain_av <|> path_av <|> secure_av
-  <|> httponly_av <|> extension_av <?> "cookie_av"
+  <|> httponly_av <|> extension_av
 
 let set_cookie_string =
   let* name, value = cookie_pair in
@@ -571,7 +574,19 @@ let set_cookie_string =
    cookie-header = "Cookie:" OWS cookie-string OWS
    cookie-string = cookie-pair *( ";" SP cookie-pair )
 *)
-let cookie_string = sep_by1 (char ';' *> char '\x20') cookie_pair
+let cookie_string =
+  let* cookies = sep_by1 (char ';' *> char '\x20') cookie_pair in
+  let name_counts = Hashtbl.create 0 in
+  List.iter
+    (fun (name, _) ->
+      match Hashtbl.find_opt name_counts name with
+      | Some count -> Hashtbl.replace name_counts name (count + 1)
+      | None -> Hashtbl.replace name_counts name 1 )
+    cookies ;
+  let name_counts = Hashtbl.to_seq_values name_counts |> List.of_seq in
+  if List.exists (fun count -> count > 1) name_counts then
+    fail "duplicate cookies found"
+  else return cookies
 
 let parse_name name =
   parse_string ~consume:Consume.All cookie_name name
@@ -667,6 +682,7 @@ let of_cookie header =
              ; same_site= None
              ; extension= None } )
            cookies' )
+  |> Result.map_error (fun s -> Format.sprintf "Invalid cookie %s" s)
 
 let to_cookie t = Format.sprintf "%s=%s" t.name t.value
 
@@ -714,6 +730,7 @@ let of_set_cookie set_cookie =
            ; same_site= None
            ; extension= None }
            attr_values )
+  |> Result.map_error (fun s -> Format.sprintf "Invalid 'Set-Cookie' data %s" s)
 
 (* Attributes *)
 let name c = c.name

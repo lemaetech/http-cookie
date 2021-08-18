@@ -1,6 +1,6 @@
 opam-version: "2.0"
 name: "http-cookie"
-version: "4.0.0"
+version: "4.1.0"
 synopsis: "HTTP cookie library for OCaml"
 description: "OCaml library to manipulate HTTP cookie. Adheres to RFC 6265."
 maintainer: "Bikal Lem"
@@ -10,7 +10,7 @@ homepage: "https://github.com/lemaetech/http-cookie"
 bug-reports: "https://github.com/lemaetech/http-cookie/issues"
 depends: [
   "angstrom" {= "0.15.0"}
-  "astring" {= "0.8.5" & with-doc}
+  "astring" {= "0.8.5" & with-test}
   "base" {= "v0.14.1" & with-test}
   "base-bigarray" {= "base"}
   "base-threads" {= "base"}
@@ -19,7 +19,7 @@ depends: [
   "bigstringaf" {= "0.8.0"}
   "cmdliner" {= "1.0.4"}
   "conf-pkg-config" {= "2"}
-  "cppo" {= "1.6.7" & with-doc}
+  "cppo" {= "1.6.7" & with-test}
   "csexp" {= "1.5.1" & with-test}
   "dune" {= "2.9.0"}
   "dune-configurator" {= "2.9.0" & with-test}
@@ -27,7 +27,8 @@ depends: [
   "fpath" {= "0.7.3" & with-doc}
   "jane-street-headers" {= "v0.14.0" & with-test}
   "jst-config" {= "v0.14.0" & with-test}
-  "logs" {= "0.7.0" & with-doc}
+  "logs" {= "0.7.0" & with-test}
+  "mdx" {= "1.10.1" & with-test}
   "ocaml" {= "4.12.0"}
   "ocaml-base-compiler" {= "4.12.0"}
   "ocaml-compiler-libs" {= "v0.12.3" & with-test}
@@ -35,11 +36,12 @@ depends: [
   "ocaml-migrate-parsetree" {= "2.2.0" & with-test}
   "ocaml-options-vanilla" {= "1"}
   "ocaml-syntax-shims" {= "1.0.0"}
+  "ocaml-version" {= "3.2.0" & with-test}
   "ocamlbuild" {= "0.14.0"}
   "ocamlfind" {= "1.9.1"}
   "octavius" {= "1.2.2" & with-test}
   "odoc" {= "dev" & with-doc}
-  "odoc-parser" {= "0.9.0" & with-doc}
+  "odoc-parser" {= "0.9.0" & with-test}
   "ppx_assert" {= "v0.14.0" & with-test}
   "ppx_base" {= "v0.14.0" & with-test}
   "ppx_cold" {= "v0.14.0" & with-test}

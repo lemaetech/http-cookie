@@ -107,6 +107,8 @@ val of_cookie : string -> (t list, string) result
     [Cookie]s if it is able to successfully parse [s], otherwise it returns
     [Error err].
 
+    It is an error to include duplicate cookie names.
+
     {4 Examples}
 
     This returns two cookies with cookie names [SID] and [lang].
