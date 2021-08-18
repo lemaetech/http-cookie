@@ -13,12 +13,12 @@ The RFC standards implemented by the library are:
 
 ## Usage
 
-HTTP `Cookie` header value:
-
 ```ocaml
 # #require "http-cookie";;
 # #install_printer Http_cookie.pp;;
 ```
+
+HTTP `Cookie` header value:
 
 ```ocaml
 # let s = "SID=234234asdasdasda" in
