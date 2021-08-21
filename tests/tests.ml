@@ -133,7 +133,7 @@ let%expect_test "create:  domain= eeee::192.168.0.1" =
     domain: eeee::192.168.0.1
     expires:
     max_age:
-    secure: true
+    secure: false
     http_only: true
     same_site:
     extension: |}]
@@ -149,7 +149,7 @@ let%expect_test "create:  domain=10.105.128.1" =
     domain: 10.105.128.1
     expires:
     max_age:
-    secure: true
+    secure: false
     http_only: true
     same_site:
     extension: |}]
@@ -166,7 +166,7 @@ let%expect_test "create:  domain=152.186.220.254" =
     domain: 152.186.220.254
     expires:
     max_age:
-    secure: true
+    secure: false
     http_only: true
     same_site:
     extension: |}]
@@ -181,7 +181,7 @@ let%expect_test "create:  domain=::" =
     domain: ::
     expires:
     max_age:
-    secure: true
+    secure: false
     http_only: true
     same_site:
     extension: |}]
@@ -196,7 +196,7 @@ let%expect_test "create:  domain=::1" =
     domain: ::1
     expires:
     max_age:
-    secure: true
+    secure: false
     http_only: true
     same_site:
     extension: |}]
@@ -213,7 +213,7 @@ let%expect_test "create:  domain=2002:2c26:f4e4:0:21c:42ff:fe20:4636" =
     domain: 2002:2c26:f4e4:0:21c:42ff:fe20:4636
     expires:
     max_age:
-    secure: true
+    secure: false
     http_only: true
     same_site:
     extension: |}]
@@ -229,7 +229,7 @@ let%expect_test "create:  domain=fec0::1" =
     domain: fec0::1
     expires:
     max_age:
-    secure: true
+    secure: false
     http_only: true
     same_site:
     extension: |}]
@@ -246,7 +246,7 @@ let%expect_test "create:  domain=fe80::215:5dff:fe00:402" =
     domain: fe80::215:5dff:fe00:402
     expires:
     max_age:
-    secure: true
+    secure: false
     http_only: true
     same_site:
     extension: |}]
@@ -263,7 +263,7 @@ let%expect_test "create:  domain=2002:2c26:f4e4:0:21c:42ff:fe20:4636" =
     domain: 2002:2c26:f4e4:0:21c:42ff:fe20:4636
     expires:
     max_age:
-    secure: true
+    secure: false
     http_only: true
     same_site:
     extension: |}]
@@ -328,7 +328,7 @@ let%expect_test "create: path=val dd" =
     domain:
     expires:
     max_age:
-    secure: true
+    secure: false
     http_only: true
     same_site:
     extension: |}]
@@ -352,7 +352,7 @@ let%expect_test "create: extension=val dd" =
     domain:
     expires:
     max_age:
-    secure: true
+    secure: false
     http_only: true
     same_site:
     extension: val dd |}]
@@ -376,7 +376,7 @@ let%expect_test "create: max_age=23323" =
     domain:
     expires:
     max_age: 23323
-    secure: true
+    secure: false
     http_only: true
     same_site:
     extension: |}]
@@ -562,7 +562,7 @@ let%expect_test "to_set_cookie" =
     ~max_age:2342342L ~http_only:true ~same_site:`Strict ~name:"hello" "value1"
   |> Result.get_ok |> pp_to_set_cookie ;
   [%expect
-    {| hello=value1; Path=/home/about; Domain=example.com; Expires=Mon, 12 Jan 2021 23:23:59 GMT; Max-Age=2342342; Secure; HttpOnly; SameSite=Strict |}]
+    {| hello=value1; Path=/home/about; Domain=example.com; Expires=Mon, 12 Jan 2021 23:23:59 GMT; Max-Age=2342342; HttpOnly; SameSite=Strict |}]
 
 let%expect_test "to_set_cookie" =
   let expires =
@@ -574,7 +574,7 @@ let%expect_test "to_set_cookie" =
     ~max_age:2342342L ~same_site:`Strict ~name:"hello" "value1"
   |> Result.get_ok |> pp_to_set_cookie ;
   [%expect
-    {| hello=value1; Path=/home/about; Domain=example.com; Expires=Mon, 12 Jan 2021 23:23:59 GMT; Max-Age=2342342; Secure; HttpOnly; SameSite=Strict |}]
+    {| hello=value1; Path=/home/about; Domain=example.com; Expires=Mon, 12 Jan 2021 23:23:59 GMT; Max-Age=2342342; HttpOnly; SameSite=Strict |}]
 
 let%expect_test "to_set_cookie" =
   let expires =
@@ -586,7 +586,7 @@ let%expect_test "to_set_cookie" =
     ~max_age:2342342L ~same_site:`Lax ~name:"hello" "value1"
   |> Result.get_ok |> pp_to_set_cookie ;
   [%expect
-    {| hello=value1; Path=/home/about; Domain=example.com; Expires=Mon, 12 Jan 2021 23:23:59 GMT; Max-Age=2342342; Secure; HttpOnly; SameSite=Lax |}]
+    {| hello=value1; Path=/home/about; Domain=example.com; Expires=Mon, 12 Jan 2021 23:23:59 GMT; Max-Age=2342342; HttpOnly; SameSite=Lax |}]
 
 let%expect_test "to_set_cookie" =
   let expires =
@@ -598,4 +598,4 @@ let%expect_test "to_set_cookie" =
     ~max_age:2342342L ~same_site:`None ~name:"hello" "value1"
   |> Result.get_ok |> pp_to_set_cookie ;
   [%expect
-    {| hello=value1; Path=/home/about; Domain=198.168.0.1; Expires=Mon, 12 Jan 2021 23:23:59 GMT; Max-Age=2342342; Secure; HttpOnly; SameSite=None |}]
+    {| hello=value1; Path=/home/about; Domain=198.168.0.1; Expires=Mon, 12 Jan 2021 23:23:59 GMT; Max-Age=2342342; HttpOnly; SameSite=None |}]
