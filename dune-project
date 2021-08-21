@@ -4,7 +4,7 @@
 
 (name http-cookie)
 
-(version 4.1.0)
+(version 4.2.0)
 
 (generate_opam_files true)
 
@@ -21,7 +21,7 @@
  (name http-cookie)
  (synopsis "HTTP cookie library for OCaml")
  (description
-  "OCaml library to manipulate HTTP cookie. Adheres to RFC 6265.")
+  "A comprehensive and strict standards compliant HTTP cookies library for ocaml. \n\n   http-cookie supports consuming and creating HTTP cookies found in HTTP request Cookie header \n   and in Set-Cookie header in HTTP response. The library validates all cookie attributes, \n   cookie name and cookie value for standards conformance and correct usage. The validation \n   suite is comprehensive and includes validation of domain name, IPv4, IPv6 and HTTP \n   date-time formats.\n\n   The RFC standards/validations implemented by the library are:\n   - RFC 6265\n   - RFC 1123\n   - RFC 1034\n   - IPV4/IPV6 address validation\n   ")
  (depends
   (ocaml
    (>= 4.10.0))

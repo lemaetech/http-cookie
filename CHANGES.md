@@ -1,3 +1,9 @@
+## v4.2.0 2021-08-18 
+
+- [Change] makes `http_only` true by default in `create` function. This makes the cookie more secure by default.
+- Use mdx in README.md
+- Update tests
+
 ## v4.1.0 2021-08-18 
 
 - [Change] `of_cookie` now validates duplicate cookie keys.

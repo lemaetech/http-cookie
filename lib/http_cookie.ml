@@ -645,8 +645,8 @@ let date_time ~year ~month ~weekday ~day ~hour ~minutes ~seconds =
   in
   Ok {year; month; weekday; day; hour; minutes; seconds}
 
-let create ?path ?domain ?expires ?max_age ?(secure = false)
-    ?(http_only = false) ?same_site ?extension ~name value =
+let create ?path ?domain ?expires ?max_age ?(secure = false) ?(http_only = true)
+    ?same_site ?extension ~name value =
   let* name = parse_name name in
   let* value = parse_value value in
   let* domain = parse_opt ~error_label:"domain" domain_value domain in

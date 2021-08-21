@@ -51,7 +51,7 @@ Ok
  expires:
  max_age:
  secure: true
- http_only: false
+ http_only: true
  same_site: Strict
  extension:
 ```
