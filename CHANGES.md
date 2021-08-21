@@ -1,4 +1,4 @@
-## v4.2.0 2021-08-18 
+## v4.2.0 2021-08-21 
 
 - [Change] makes `http_only` true by default in `create` function. This makes the cookie more secure by default.
 - Use mdx in README.md
