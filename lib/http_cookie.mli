@@ -28,16 +28,16 @@
     + {{:https://datatracker.ietf.org/doc/html/draft-main-ipaddr-text-rep-02#section-3}
       IPv4/IPv6 Address} *)
 
-(** A HTTP cookie. *)
 type t
+(** A HTTP cookie. *)
 
-(** normalized date time value in GMT. *)
 and date_time
+(** normalized date time value in GMT. *)
 
+and same_site = [ `None | `Lax | `Strict ]
 (** 'Same-site' cookie attribute.
     {{:https://tools.ietf.org/html/draft-ietf-httpbis-cookie-same-site-00}
     Same-site} *)
-and same_site = [`None | `Lax | `Strict]
 
 (** {1 Pretty Printers} *)
 
@@ -58,42 +58,42 @@ val pp_rfc1123 : Format.formatter -> date_time -> unit
 (** {1 Create/Decode/Encode} *)
 
 val date_time :
-     year:int
-  -> month:
-       [ `Jan
-       | `Feb
-       | `Mar
-       | `Apr
-       | `May
-       | `Jun
-       | `Jul
-       | `Aug
-       | `Sep
-       | `Oct
-       | `Nov
-       | `Dec ]
-  -> weekday:[`Sun | `Mon | `Tue | `Wed | `Thu | `Fri | `Sat]
-  -> day:int
-  -> hour:int (** 24 hour format *)
-  -> minutes:int
-  -> seconds:int
-  -> (date_time, string) result
+  year:int ->
+  month:
+    [ `Jan
+    | `Feb
+    | `Mar
+    | `Apr
+    | `May
+    | `Jun
+    | `Jul
+    | `Aug
+    | `Sep
+    | `Oct
+    | `Nov
+    | `Dec ] ->
+  weekday:[ `Sun | `Mon | `Tue | `Wed | `Thu | `Fri | `Sat ] ->
+  day:int ->
+  hour:int (** 24 hour format *) ->
+  minutes:int ->
+  seconds:int ->
+  (date_time, string) result
 (** [date_time] is [Ok dt] if all of the given parameters are valid for creating
     {!type:date_time} value, otherwise it is [Error err] where err denotes the
     error. *)
 
 val create :
-     ?path:string
-  -> ?domain:string
-  -> ?expires:date_time
-  -> ?max_age:int64
-  -> ?secure:bool
-  -> ?http_only:bool
-  -> ?same_site:same_site
-  -> ?extension:string
-  -> name:string
-  -> string
-  -> (t, string) result
+  ?path:string ->
+  ?domain:string ->
+  ?expires:date_time ->
+  ?max_age:int64 ->
+  ?secure:bool ->
+  ?http_only:bool ->
+  ?same_site:same_site ->
+  ?extension:string ->
+  name:string ->
+  string ->
+  (t, string) result
 (** [create ~path ~domain ~expires ~max_age ~secure ~http_only ~same_site ~extension ~name
     value]
     is [Ok cookie] if all of the given parameters are valid cookie attribute

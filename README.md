@@ -34,7 +34,7 @@ HTTP `Set-Cookie` header value:
 # let s = "SID=31d4d96e407aad42; Path=/; Domain=ffff::0234:ddd:192.168.0.1; Expires=Sun, 06 Nov 1994 08:49:37 GMT; Secure; HttpOnly" in
   let c = Http_cookie.of_set_cookie s |> Result.get_ok in
   let s2 = Http_cookie.to_set_cookie c in 
-  s = s2
+  s = s2;;
 - : bool = true
 ```
 

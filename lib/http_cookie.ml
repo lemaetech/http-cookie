@@ -8,54 +8,58 @@
  * %%NAME%% %%VERSION%%
  *-------------------------------------------------------------------------*)
 
-type t =
-  { name: string
-  ; value: string
-  ; path: string option
-  ; domain: string option
-  ; expires: date_time option
-  ; max_age: int64 option
-  ; secure: bool
-  ; http_only: bool
-  ; same_site: same_site option
-  ; extension: string option }
+type t = {
+  name : string;
+  value : string;
+  path : string option;
+  domain : string option;
+  expires : date_time option;
+  max_age : int64 option;
+  secure : bool;
+  http_only : bool;
+  same_site : same_site option;
+  extension : string option;
+}
 
-and date_time =
-  { year: int
-  ; month:
-      [ `Jan
-      | `Feb
-      | `Mar
-      | `Apr
-      | `May
-      | `Jun
-      | `Jul
-      | `Aug
-      | `Sep
-      | `Oct
-      | `Nov
-      | `Dec ]
-  ; weekday: [`Sun | `Mon | `Tue | `Wed | `Thu | `Fri | `Sat]
-  ; day: int
-  ; hour: int
-  ; minutes: int
-  ; seconds: int }
+and date_time = {
+  year : int;
+  month :
+    [ `Jan
+    | `Feb
+    | `Mar
+    | `Apr
+    | `May
+    | `Jun
+    | `Jul
+    | `Aug
+    | `Sep
+    | `Oct
+    | `Nov
+    | `Dec ];
+  weekday : [ `Sun | `Mon | `Tue | `Wed | `Thu | `Fri | `Sat ];
+  day : int;
+  hour : int;
+  minutes : int;
+  seconds : int;
+}
 
-and same_site = [`None | `Lax | `Strict]
+and same_site = [ `None | `Lax | `Strict ]
 
 (* Pretty Printers *)
 let rec pp fmt' t =
   let fields =
-    [ Fmt.field "name" (fun p -> p.name) Fmt.string
-    ; Fmt.field "value" (fun p -> p.value) Fmt.string
-    ; Fmt.field "path" (fun p -> p.path) Fmt.(option string)
-    ; Fmt.field "domain" (fun p -> p.domain) Fmt.(option string)
-    ; Fmt.field "expires" (fun p -> p.expires) Fmt.(option pp_date_time)
-    ; Fmt.field "max_age" (fun p -> p.max_age) Fmt.(option int64)
-    ; Fmt.field "secure" (fun p -> p.secure) Fmt.bool
-    ; Fmt.field "http_only" (fun p -> p.http_only) Fmt.bool
-    ; Fmt.field "same_site" (fun p -> p.same_site) Fmt.(option pp_same_site)
-    ; Fmt.field "extension" (fun p -> p.extension) Fmt.(option string) ]
+    [
+      Fmt.field "name" (fun p -> p.name) Fmt.string;
+      Fmt.field "value" (fun p -> p.value) Fmt.string;
+      Fmt.field "path" (fun p -> p.path) Fmt.(option string);
+      Fmt.field "domain" (fun p -> p.domain) Fmt.(option string);
+      Fmt.field "expires" (fun p -> p.expires) Fmt.(option pp_date_time);
+      Fmt.field "max_age" (fun p -> p.max_age) Fmt.(option int64);
+      Fmt.field "secure" (fun p -> p.secure) Fmt.bool;
+      Fmt.field "http_only" (fun p -> p.http_only) Fmt.bool;
+      Fmt.field "same_site" (fun p -> p.same_site) Fmt.(option pp_same_site);
+      Fmt.field "extension" (fun p -> p.extension) Fmt.(option string);
+    ]
   in
   Fmt.(vbox (record fields) fmt' t)
 
@@ -96,7 +100,7 @@ and pp_same_site fmt = function
 and to_string pp t =
   let buf = Buffer.create 0 in
   let fmt = Format.formatter_of_buffer buf in
-  Format.fprintf fmt "%a%!" pp t ;
+  Format.fprintf fmt "%a%!" pp t;
   Buffer.contents buf
 
 let pp_rfc1123 = pp_date_time
@@ -178,9 +182,9 @@ let token =
   take_while1 (function
     | '\x00' .. '\x1F' | '\x7F' -> false (* CONTROL chars *)
     | '(' | ')' | '<' | '>' | '@' | ',' | ';' | ':' | '\\' | '"' | '/' | '['
-     |']' | '?' | '=' | '{' | '}' | ' ' ->
+    | ']' | '?' | '=' | '{' | '}' | ' ' ->
         false (* SEPARATOR chars *)
-    | _ -> true )
+    | _ -> true)
 
 let cookie_name = token
 
@@ -194,10 +198,10 @@ cookie-octet      = %x21 / %x23-2B / %x2D-3A / %x3C-5B / %x5D-7E
 let cookie_value =
   let cookie_octet = function
     | '\x21'
-     |'\x23' .. '\x2B'
-     |'\x2D' .. '\x3A'
-     |'\x3C' .. '\x5B'
-     |'\x5D' .. '\x7E' ->
+    | '\x23' .. '\x2B'
+    | '\x2D' .. '\x3A'
+    | '\x3C' .. '\x5B'
+    | '\x5D' .. '\x7E' ->
         true
     | _ -> false
   in
@@ -253,14 +257,14 @@ let domain_name =
             (Format.sprintf
                "Invalid 'Domain' cookie attribute value: %s. middle characters \
                 must end with either a letter or a digit"
-               (string_of_list middle_chars) )
+               (string_of_list middle_chars))
       else if len = 0 then return []
       else
         fail
           (Format.sprintf
              "Invalid 'Domain' cookie attribute value: %s. label must 63 \
               characters or less."
-             (string_of_list middle_chars) )
+             (string_of_list middle_chars))
     in
     string_of_list (first_char :: middle_chars)
   in
@@ -334,21 +338,20 @@ let ipv6_address =
         | c when is_digit c -> true
         | 'A' .. 'F' -> true
         | 'a' .. 'f' -> true
-        | _ -> false )
+        | _ -> false)
     in
     if String.length hexdigits <= 4 then return (`H16 hexdigits)
     else
       fail
         (Format.sprintf "IPv6 component must be 1 to 4 hex digits long: %s"
-           hexdigits )
+           hexdigits)
   in
   let dbl_colon = string "::" *> return `Dbl_colon in
   let* ip_parts =
     let ipv4 = ipv4_address >>| fun ipv4 -> `IPv4 ipv4 in
     let[@inline always] not_empty s = String.length s > 0 in
     let p =
-      option "" (peek_string 2)
-      >>= fun s ->
+      option "" (peek_string 2) >>= fun s ->
       match s with
       | "::" -> dbl_colon
       | s when not_empty s && s.[0] = ':' -> char ':' *> (ipv4 <|> h16)
@@ -377,7 +380,7 @@ let ipv6_address =
           (Invalid_IPv6
              (Format.sprintf
                 "Invalid IPv6 address. If IP v4 is specified, it must be the \
-                 last component" ) )
+                 last component"))
     else ()
   in
   let validate_dbl_colons () =
@@ -388,8 +391,7 @@ let ipv6_address =
     if len > 1 then
       raise
         (Invalid_IPv6
-           (Format.sprintf "Invalid IPv6 address. '::' is only allowed once.")
-        )
+           (Format.sprintf "Invalid IPv6 address. '::' is only allowed once."))
     else ()
   in
   let validate_parts_count () =
@@ -401,9 +403,9 @@ let ipv6_address =
     else raise (Invalid_IPv6 (Format.sprintf "Invalid IPv6 address components"))
   in
   try
-    validate_dbl_colons () ;
-    validate_ipv4 () ;
-    validate_parts_count () ;
+    validate_dbl_colons ();
+    validate_ipv4 ();
+    validate_parts_count ();
     let ip =
       if len' = 1 then "::"
       else
@@ -411,7 +413,7 @@ let ipv6_address =
         |> List.mapi (fun i -> function
              | `H16 h16 -> h16
              | `IPv4 ipv4 -> ipv4
-             | `Dbl_colon -> if i = 0 || i = len' - 1 then ":" else "" )
+             | `Dbl_colon -> if i = 0 || i = len' - 1 then ":" else "")
         |> String.concat ":"
     in
     return ip
@@ -423,7 +425,7 @@ let cookie_attr_value =
   take_while1 (function
     | '\x00' .. '\x1F' | '\x7F' -> false (* CONTROL chars *)
     | ';' -> false
-    | _ -> true )
+    | _ -> true)
 
 let path_value = cookie_attr_value
 let extension_value = cookie_attr_value
@@ -455,8 +457,13 @@ let extension_value = cookie_attr_value
 *)
 let http_date =
   let wkday =
-    string "Mon" <|> string "Tue" <|> string "Wed" <|> string "Thu"
-    <|> string "Fri" <|> string "Sat" <|> string "Sun"
+    string "Mon"
+    <|> string "Tue"
+    <|> string "Wed"
+    <|> string "Thu"
+    <|> string "Fri"
+    <|> string "Sat"
+    <|> string "Sun"
   in
   let digits count =
     let* digits = list @@ List.init count (fun _ -> digit) in
@@ -465,12 +472,11 @@ let http_date =
     with exn ->
       fail
         (Format.sprintf "Invalid integer value:%s. %s" digits
-           (Printexc.to_string exn) )
+           (Printexc.to_string exn))
   in
   let time =
     let* hh =
-      digits 2 <* char ':'
-      >>= fun hour ->
+      digits 2 <* char ':' >>= fun hour ->
       if hour >= 0 && hour < 24 then return hour
       else
         fail
@@ -480,8 +486,7 @@ let http_date =
              hour
     in
     let* mm =
-      digits 2 <* char ':'
-      >>= fun minutes ->
+      digits 2 <* char ':' >>= fun minutes ->
       if minutes >= 0 && minutes <= 59 then return minutes
       else
         fail
@@ -491,8 +496,7 @@ let http_date =
              minutes
     in
     let+ ss =
-      digits 2
-      >>= fun seconds ->
+      digits 2 >>= fun seconds ->
       if seconds >= 0 && seconds <= 59 then return seconds
       else
         fail
@@ -504,9 +508,18 @@ let http_date =
     (hh, mm, ss)
   in
   let month =
-    string "Jan" <|> string "Feb" <|> string "Mar" <|> string "Apr"
-    <|> string "May" <|> string "Jun" <|> string "Jul" <|> string "Aug"
-    <|> string "Sep" <|> string "Oct" <|> string "Nov" <|> string "Dec"
+    string "Jan"
+    <|> string "Feb"
+    <|> string "Mar"
+    <|> string "Apr"
+    <|> string "May"
+    <|> string "Jun"
+    <|> string "Jul"
+    <|> string "Aug"
+    <|> string "Sep"
+    <|> string "Oct"
+    <|> string "Nov"
+    <|> string "Dec"
   in
   let validate_year year =
     if year < 1601 then
@@ -520,7 +533,7 @@ let http_date =
         (Format.sprintf
            "Invalid day of month: %d. Day of month must be in between 1 and 31 \
             inclusive."
-           day )
+           day)
   in
   let date1 =
     let* day = digits 2 <* space >>= day_of_month in
@@ -532,7 +545,7 @@ let http_date =
     let* weekday = wkday <* char ',' *> space >>| to_weekday in
     let* day, month, year = date1 <* space in
     let+ hour, minutes, seconds = time <* space *> string "GMT" in
-    {weekday; day; month; year; hour; minutes; seconds}
+    { weekday; day; month; year; hour; minutes; seconds }
   in
   rfc1123_date
 
@@ -545,7 +558,7 @@ let max_age_value =
   with exn ->
     fail
       (Format.sprintf "Invalid max_age value:%s. %s" max_age
-         (Printexc.to_string exn) )
+         (Printexc.to_string exn))
 
 let cookie_av =
   let expires_av =
@@ -561,8 +574,13 @@ let cookie_av =
   let secure_av = string "Secure" *> return `Secure in
   let httponly_av = string "HttpOnly" *> return `Http_only in
   let extension_av = extension_value >>| fun v -> `Extension (Some v) in
-  expires_av <|> max_age_av <|> domain_av <|> path_av <|> secure_av
-  <|> httponly_av <|> extension_av
+  expires_av
+  <|> max_age_av
+  <|> domain_av
+  <|> path_av
+  <|> secure_av
+  <|> httponly_av
+  <|> extension_av
 
 let set_cookie_string =
   let* name, value = cookie_pair in
@@ -581,22 +599,22 @@ let cookie_string =
     (fun (name, _) ->
       match Hashtbl.find_opt name_counts name with
       | Some count -> Hashtbl.replace name_counts name (count + 1)
-      | None -> Hashtbl.replace name_counts name 1 )
-    cookies ;
+      | None -> Hashtbl.replace name_counts name 1)
+    cookies;
   let name_counts = Hashtbl.to_seq_values name_counts |> List.of_seq in
   if List.exists (fun count -> count > 1) name_counts then
     fail "duplicate cookies found"
   else return cookies
 
 let parse_name name =
-  parse_string ~consume:Consume.All cookie_name name
-  |> function
-  | Ok _ as ok -> ok | Error _ -> Error (Format.sprintf "name: %s" name)
+  parse_string ~consume:Consume.All cookie_name name |> function
+  | Ok _ as ok -> ok
+  | Error _ -> Error (Format.sprintf "name: %s" name)
 
 let parse_value value =
-  parse_string ~consume:Consume.All cookie_value value
-  |> function
-  | Ok _ as ok -> ok | Error _ -> Error (Format.sprintf "value: %s" value)
+  parse_string ~consume:Consume.All cookie_value value |> function
+  | Ok _ as ok -> ok
+  | Error _ -> Error (Format.sprintf "value: %s" value)
 
 let parse_max_age max_age =
   match max_age with
@@ -605,18 +623,17 @@ let parse_max_age max_age =
       if ma <= 0L then
         Error
           (Format.sprintf
-             "Cookies 'Max-Age' attribute is less than or equal to 0" )
+             "Cookies 'Max-Age' attribute is less than or equal to 0")
       else Ok (Some ma)
 
 let parse_opt ?error_label p input =
   match input with
   | Some input -> (
-      parse_string ~consume:Consume.All (p >>| Option.some) input
-      |> function
+      parse_string ~consume:Consume.All (p >>| Option.some) input |> function
       | Ok _ as ok -> ok
       | Error err ->
           let error_label = Option.value ~default:err error_label in
-          Error (Format.sprintf "%s: %s" error_label (String.escaped input)) )
+          Error (Format.sprintf "%s: %s" error_label (String.escaped input)))
   | None -> Ok None
 
 let ( let* ) r f = Result.bind r f
@@ -643,7 +660,7 @@ let date_time ~year ~month ~weekday ~day ~hour ~minutes ~seconds =
     if seconds >= 0 && seconds < 60 then Ok seconds
     else Error (Format.sprintf "Invalid seconds (>=0 && < 60): %d" seconds)
   in
-  Ok {year; month; weekday; day; hour; minutes; seconds}
+  Ok { year; month; weekday; day; hour; minutes; seconds }
 
 let create ?path ?domain ?expires ?max_age ?(secure = false) ?(http_only = true)
     ?same_site ?extension ~name value =
@@ -655,33 +672,37 @@ let create ?path ?domain ?expires ?max_age ?(secure = false) ?(http_only = true)
   let+ extension =
     parse_opt ~error_label:"extension" extension_value extension
   in
-  { name
-  ; value
-  ; path
-  ; domain
-  ; expires
-  ; max_age
-  ; secure
-  ; http_only
-  ; same_site
-  ; extension }
+  {
+    name;
+    value;
+    path;
+    domain;
+    expires;
+    max_age;
+    secure;
+    http_only;
+    same_site;
+    extension;
+  }
 
 let of_cookie header =
   parse_string ~consume:All cookie_string header
   |> Result.map (fun cookies' ->
          List.map
            (fun (name, value) ->
-             { name
-             ; value
-             ; path= None
-             ; domain= None
-             ; expires= None
-             ; max_age= None
-             ; secure= false
-             ; http_only= false
-             ; same_site= None
-             ; extension= None } )
-           cookies' )
+             {
+               name;
+               value;
+               path = None;
+               domain = None;
+               expires = None;
+               max_age = None;
+               secure = false;
+               http_only = false;
+               same_site = None;
+               extension = None;
+             })
+           cookies')
   |> Result.map_error (fun s -> Format.sprintf "Invalid cookie %s" s)
 
 let to_cookie t = Format.sprintf "%s=%s" t.name t.value
@@ -690,21 +711,21 @@ let to_set_cookie t =
   let module O = Option in
   let buf = Buffer.create 50 in
   let add_str fmt = Format.ksprintf (Buffer.add_string buf) fmt in
-  add_str "%s=%s" t.name t.value ;
-  O.iter (fun path -> add_str "; Path=%s" path) t.path ;
-  O.iter (fun d -> add_str "; Domain=%s" d) t.domain ;
+  add_str "%s=%s" t.name t.value;
+  O.iter (fun path -> add_str "; Path=%s" path) t.path;
+  O.iter (fun d -> add_str "; Domain=%s" d) t.domain;
   O.iter
     (fun expires -> add_str "; Expires=%s" @@ date_to_string expires)
-    t.expires ;
+    t.expires;
   O.iter
     (fun max_age -> if max_age > 0L then add_str "; Max-Age=%Ld" max_age)
-    t.max_age ;
-  if t.secure then add_str "; Secure" ;
-  if t.http_only then add_str "; HttpOnly" ;
+    t.max_age;
+  if t.secure then add_str "; Secure";
+  if t.http_only then add_str "; HttpOnly";
   O.iter
     (fun same_site -> add_str "; SameSite=%s" (same_site_to_string same_site))
-    t.same_site ;
-  O.iter (fun extension -> add_str "; %s" extension) t.extension ;
+    t.same_site;
+  O.iter (fun extension -> add_str "; %s" extension) t.extension;
   Buffer.contents buf
 
 let of_set_cookie set_cookie =
@@ -712,24 +733,26 @@ let of_set_cookie set_cookie =
   |> Result.map (fun (name, value, attr_values) ->
          List.fold_left
            (fun cookie -> function
-             | `Expires expires -> {cookie with expires}
-             | `Max_age max_age -> {cookie with max_age}
-             | `Domain domain -> {cookie with domain}
-             | `Path path -> {cookie with path}
-             | `Secure -> {cookie with secure= true}
-             | `Http_only -> {cookie with http_only= true}
-             | `Extension extension -> {cookie with extension} )
-           { name
-           ; value
-           ; path= None
-           ; domain= None
-           ; expires= None
-           ; max_age= None
-           ; secure= false
-           ; http_only= false
-           ; same_site= None
-           ; extension= None }
-           attr_values )
+             | `Expires expires -> { cookie with expires }
+             | `Max_age max_age -> { cookie with max_age }
+             | `Domain domain -> { cookie with domain }
+             | `Path path -> { cookie with path }
+             | `Secure -> { cookie with secure = true }
+             | `Http_only -> { cookie with http_only = true }
+             | `Extension extension -> { cookie with extension })
+           {
+             name;
+             value;
+             path = None;
+             domain = None;
+             expires = None;
+             max_age = None;
+             secure = false;
+             http_only = false;
+             same_site = None;
+             extension = None;
+           }
+           attr_values)
   |> Result.map_error (fun s -> Format.sprintf "Invalid 'Set-Cookie' data %s" s)
 
 (* Attributes *)
@@ -747,30 +770,30 @@ let secure c = c.secure
 (* Updates. *)
 let update_value value cookie =
   let+ value = parse_value value in
-  {cookie with value}
+  { cookie with value }
 
 let update_name name cookie =
   let+ name = parse_name name in
-  {cookie with name}
+  { cookie with name }
 
 let update_path path cookie =
   let+ path = parse_opt path_value path in
-  {cookie with path}
+  { cookie with path }
 
 let update_domain domain cookie =
   let+ domain = parse_opt domain_value domain in
-  {cookie with domain}
+  { cookie with domain }
 
-let update_expires expires cookie = {cookie with expires}
+let update_expires expires cookie = { cookie with expires }
 
 let update_max_age max_age cookie =
   let+ max_age = parse_max_age max_age in
-  {cookie with max_age}
+  { cookie with max_age }
 
-let update_secure secure cookie = {cookie with secure}
-let update_http_only http_only cookie = {cookie with http_only}
-let update_same_site same_site cookie = {cookie with same_site}
+let update_secure secure cookie = { cookie with secure }
+let update_http_only http_only cookie = { cookie with http_only }
+let update_same_site same_site cookie = { cookie with same_site }
 
 let update_extension extension cookie =
   let+ extension = parse_opt extension_value extension in
-  {cookie with extension}
+  { cookie with extension }
