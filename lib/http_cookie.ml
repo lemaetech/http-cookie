@@ -550,8 +550,8 @@ let http_date =
   rfc1123_date
 
 let max_age_value =
-  let non_zero_digit = satisfy (function '1' .. '9' -> true | _ -> false) in
-  let* first_char = non_zero_digit in
+  let non_zero_digit_or_minus = satisfy (function '-' | '1' .. '9' -> true | _ -> false) in
+  let* first_char = non_zero_digit_or_minus in
   let* digits = take_while is_digit in
   let max_age = Format.sprintf "%c%s" first_char digits in
   try return (Int64.of_string max_age)
@@ -718,7 +718,7 @@ let to_set_cookie t =
     (fun expires -> add_str "; Expires=%s" @@ date_to_string expires)
     t.expires;
   O.iter
-    (fun max_age -> if max_age > 0L then add_str "; Max-Age=%Ld" max_age)
+    (fun max_age -> add_str "; Max-Age=%Ld" max_age)
     t.max_age;
   if t.secure then add_str "; Secure";
   if t.http_only then add_str "; HttpOnly";
