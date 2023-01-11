@@ -550,8 +550,8 @@ let http_date =
   rfc1123_date
 
 let max_age_value =
-  let non_zero_digit_or_minus = satisfy (function '-' | '1' .. '9' -> true | _ -> false) in
-  let* first_char = non_zero_digit_or_minus in
+  let digit_or_minus = satisfy (function '-' | '0' .. '9' -> true | _ -> false) in
+  let* first_char = digit_or_minus in
   let* digits = take_while is_digit in
   let max_age = Format.sprintf "%c%s" first_char digits in
   try return (Int64.of_string max_age)

@@ -461,6 +461,44 @@ let%expect_test "of_set_cookie: " =
     same_site:
     extension: |}]
 
+(* of_set_cookie tests *)
+let%expect_test "of_set_cookie: " =
+  Http_cookie.of_set_cookie
+    "SID=31d4d96e407aad42; Path=/; Domain=example.com; Secure; HttpOnly; \
+     Max-Age=-1"
+  |> pp_t;
+  [%expect
+    {|
+    name: SID
+    value: 31d4d96e407aad42
+    path: /
+    domain: example.com
+    expires:
+    max_age: -1
+    secure: true
+    http_only: true
+    same_site:
+    extension: |}]
+
+(* of_set_cookie tests *)
+let%expect_test "of_set_cookie: " =
+  Http_cookie.of_set_cookie
+    "SID=31d4d96e407aad42; Path=/; Domain=example.com; Secure; HttpOnly; \
+     Max-Age=0"
+  |> pp_t;
+  [%expect
+    {|
+    name: SID
+    value: 31d4d96e407aad42
+    path: /
+    domain: example.com
+    expires:
+    max_age: 0
+    secure: true
+    http_only: true
+    same_site:
+    extension: |}]
+
 let%expect_test "of_set_cookie: " =
   Http_cookie.of_set_cookie
     "SID=31d4d96e407aad42; Path=/; Domain=192.169.0.1; Secure; HttpOnly; \
