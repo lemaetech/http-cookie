@@ -797,3 +797,13 @@ let update_same_site same_site cookie = { cookie with same_site }
 let update_extension extension cookie =
   let+ extension = parse_opt extension_value extension in
   { cookie with extension }
+
+let delete cookie =
+  { cookie with
+    value = "";
+    path = None;
+    domain = None;
+    expires = None;
+    max_age = Some (-1L);
+    extension = None;
+  }
