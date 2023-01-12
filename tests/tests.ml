@@ -639,7 +639,7 @@ let%expect_test "to_set_cookie" =
   [%expect
     {| hello=value1; Path=/home/about; Domain=198.168.0.1; Expires=Mon, 12 Jan 2021 23:23:59 GMT; Max-Age=2342342; HttpOnly; SameSite=None |}]
 
-let%expect_test "delete" =
+let%expect_test "expire" =
   let expires =
     Http_cookie.date_time ~year:2021 ~month:`Jan ~weekday:`Mon ~day:12 ~hour:23
       ~minutes:23 ~seconds:59
@@ -648,13 +648,13 @@ let%expect_test "delete" =
   Http_cookie.create ~path:"/home/about" ~domain:"198.168.0.1" ~expires
     ~max_age:2342342L ~same_site:`None ~name:"hello" "value1"
   |> Result.get_ok
-  |> Http_cookie.delete
+  |> Http_cookie.expire
   |> pp_to_set_cookie;
   [%expect
     {| hello=; Max-Age=-1; HttpOnly; SameSite=None |}]
 
 
-let%expect_test "delete" =
+let%expect_test "expire" =
   let expires =
     Http_cookie.date_time ~year:2021 ~month:`Jan ~weekday:`Mon ~day:12 ~hour:23
       ~minutes:23 ~seconds:59
@@ -663,16 +663,16 @@ let%expect_test "delete" =
   Http_cookie.create ~path:"/home/about" ~domain:"198.168.0.1" ~expires
     ~max_age:2342342L ~same_site:`Strict ~name:"h" "value2"
   |> Result.get_ok
-  |> Http_cookie.delete
+  |> Http_cookie.expire
   |> pp_to_set_cookie;
   [%expect
     {| h=; Max-Age=-1; HttpOnly; SameSite=Strict |}]
 
-let%expect_test "delete" =
+let%expect_test "expire" =
   Http_cookie.create ~domain:"198.168.0.1"
     ~same_site:`Lax ~name:"h" ~http_only:false ""
   |> Result.get_ok
-  |> Http_cookie.delete
+  |> Http_cookie.expire
   |> pp_to_set_cookie;
   [%expect
     {| h=; Max-Age=-1; SameSite=Lax |}]
