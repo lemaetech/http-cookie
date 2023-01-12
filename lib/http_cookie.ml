@@ -798,7 +798,7 @@ let update_extension extension cookie =
   let+ extension = parse_opt extension_value extension in
   { cookie with extension }
 
-let delete cookie =
+let expire cookie =
   { cookie with
     value = "";
     path = None;
