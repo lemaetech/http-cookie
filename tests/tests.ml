@@ -650,9 +650,7 @@ let%expect_test "expire" =
   |> Result.get_ok
   |> Http_cookie.expire
   |> pp_to_set_cookie;
-  [%expect
-    {| hello=; Max-Age=-1; HttpOnly; SameSite=None |}]
-
+  [%expect {| hello=; Max-Age=-1; HttpOnly; SameSite=None |}]
 
 let%expect_test "expire" =
   let expires =
@@ -665,14 +663,12 @@ let%expect_test "expire" =
   |> Result.get_ok
   |> Http_cookie.expire
   |> pp_to_set_cookie;
-  [%expect
-    {| h=; Max-Age=-1; HttpOnly; SameSite=Strict |}]
+  [%expect {| h=; Max-Age=-1; HttpOnly; SameSite=Strict |}]
 
 let%expect_test "expire" =
-  Http_cookie.create ~domain:"198.168.0.1"
-    ~same_site:`Lax ~name:"h" ~http_only:false ""
+  Http_cookie.create ~domain:"198.168.0.1" ~same_site:`Lax ~name:"h"
+    ~http_only:false ""
   |> Result.get_ok
   |> Http_cookie.expire
   |> pp_to_set_cookie;
-  [%expect
-    {| h=; Max-Age=-1; SameSite=Lax |}]
+  [%expect {| h=; Max-Age=-1; SameSite=Lax |}]

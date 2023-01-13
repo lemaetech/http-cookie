@@ -226,5 +226,5 @@ val update_extension : string option -> t -> (t, string) result
 
 val expire : t -> t
 (** [expire c] marks the cookie with a negative max-age, remove now useless
-    payload.  The cookie still needs to be send to client for it to delete the
+    payload. The cookie still needs to be send to client for it to delete the
     cookie. *)

@@ -276,7 +276,7 @@ let domain_name =
   *)
   let* () = option () (char '.' *> return ()) in
   let* start_pos = pos in
-  let* subdomain = subdomain in
+  let* subdomain in
   let* end_pos = pos in
   let len = end_pos - start_pos in
   if len > 255 then
@@ -550,7 +550,9 @@ let http_date =
   rfc1123_date
 
 let max_age_value =
-  let digit_or_minus = satisfy (function '-' | '0' .. '9' -> true | _ -> false) in
+  let digit_or_minus =
+    satisfy (function '-' | '0' .. '9' -> true | _ -> false)
+  in
   let* first_char = digit_or_minus in
   let* digits = take_while is_digit in
   let max_age = Format.sprintf "%c%s" first_char digits in
@@ -717,9 +719,7 @@ let to_set_cookie t =
   O.iter
     (fun expires -> add_str "; Expires=%s" @@ date_to_string expires)
     t.expires;
-  O.iter
-    (fun max_age -> add_str "; Max-Age=%Ld" max_age)
-    t.max_age;
+  O.iter (fun max_age -> add_str "; Max-Age=%Ld" max_age) t.max_age;
   if t.secure then add_str "; Secure";
   if t.http_only then add_str "; HttpOnly";
   O.iter
@@ -799,7 +799,8 @@ let update_extension extension cookie =
   { cookie with extension }
 
 let expire cookie =
-  { cookie with
+  {
+    cookie with
     value = "";
     path = None;
     domain = None;
