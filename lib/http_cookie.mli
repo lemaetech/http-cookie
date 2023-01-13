@@ -50,7 +50,9 @@ val pp_date_time : Format.formatter -> date_time -> unit
 
     Example:
 
-    {[ Sun, 06 Nov 1994 08:49:37 GMT ]} *)
+    {[
+      Sun, 06 Nov 1994 08:49:37 GMT
+    ]} *)
 
 val pp_rfc1123 : Format.formatter -> date_time -> unit
 (** Alias of {!val:pp_date_time}. *)
@@ -113,7 +115,9 @@ val of_cookie : string -> (t list, string) result
 
     This returns two cookies with cookie names [SID] and [lang].
 
-    {[ Http_cookie.of_cookie "SID=31d4d96e407aad42; lang=en-US" ]} *)
+    {[
+      Http_cookie.of_cookie "SID=31d4d96e407aad42; lang=en-US"
+    ]} *)
 
 val to_cookie : t -> string
 (** [to_cookie c] serializes [c] into a string which can be encoded as value for
