@@ -227,3 +227,8 @@ val update_secure : bool -> t -> t
 val update_http_only : bool -> t -> t
 val update_same_site : same_site option -> t -> t
 val update_extension : string option -> t -> (t, string) result
+
+val expire : t -> t
+(** [expire c] marks the cookie with a negative max-age, remove now useless
+    payload. The cookie still needs to be send to client for it to delete the
+    cookie. *)
