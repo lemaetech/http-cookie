@@ -229,6 +229,6 @@ val update_same_site : same_site option -> t -> t
 val update_extension : string option -> t -> (t, string) result
 
 val expire : t -> t
-(** [expire c] marks the cookie with a negative max-age, remove now useless
-    payload. The cookie still needs to be send to client for it to delete the
-    cookie. *)
+(** [expire c] expires cookie [c] with a Max-Age value of [-1L]. All other
+    cookie attribute values are removed. Cookies with [Max-Age] value [< 0] are
+    removed by HTTP agents such as web browsers. *)

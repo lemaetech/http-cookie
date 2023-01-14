@@ -276,7 +276,7 @@ let domain_name =
   *)
   let* () = option () (char '.' *> return ()) in
   let* start_pos = pos in
-  let* subdomain in
+  let* subdomain = subdomain in
   let* end_pos = pos in
   let len = end_pos - start_pos in
   if len > 255 then
