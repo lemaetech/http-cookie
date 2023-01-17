@@ -1,3 +1,4 @@
 (mdx
  (files README.md)
- (packages http-cookie))
+ (package http-cookie)
+ (libraries http-cookie))
