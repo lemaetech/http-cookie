@@ -1,16 +1,20 @@
-## v4.2.0 2021-08-21 
+## v4.3 2023-01-17
+- add `expire` functionality (#8 @craff)
+- make http-cookie more lean by removing `fmt` dependency.
+
+## v4.2.0 2021-08-21
 
 - [Change] makes `http_only` true by default in `create` function. This makes the cookie more secure by default.
 - Use mdx in README.md
 - Update tests
 
-## v4.1.0 2021-08-18 
+## v4.1.0 2021-08-18
 
 - [Change] `of_cookie` now validates duplicate cookie keys.
 - [Change] slightly improve error message for `of_cookie` and `of_set_cookie`
 - [Fix]    Fix IPv6 parsing for H16 values.
 
-## v4.0.0 2021-08-16 
+## v4.0.0 2021-08-16
 
 - [BREAKING-CHANGE] remove module `Same_site`. Use `same_site` type instead.
 - [New] introduce type `same_site` to replace `Same_site` module and to better conform to RFC 6265.
@@ -25,7 +29,7 @@
 - [New] add `of_set_cookie` to parse HTTP `Set-Cookie` header
 - Add expect tests
 
-## v3.1.0 2021-08-11 
+## v3.1.0 2021-08-11
 
 - Add `update_*` functions.
 
