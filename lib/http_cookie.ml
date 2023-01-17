@@ -46,22 +46,33 @@ and date_time = {
 and same_site = [ `None | `Lax | `Strict ]
 
 (* Pretty Printers *)
-let rec pp fmt' t =
+let rec pp fmt t =
+  let open Format in
+  let field name f pp_v fmt t = fprintf fmt "@[<1>%s:@ %a@]" name pp_v (f t) in
+  let string = Format.pp_print_string in
+  let bool = Format.pp_print_bool in
+  let int64 fmt = Format.fprintf fmt "%Ld" in
+  let option f fmt = function
+    | Some v -> fprintf fmt "%a" f v
+    | None -> fprintf fmt ""
+  in
   let fields =
     [
-      Fmt.field "name" (fun p -> p.name) Fmt.string;
-      Fmt.field "value" (fun p -> p.value) Fmt.string;
-      Fmt.field "path" (fun p -> p.path) Fmt.(option string);
-      Fmt.field "domain" (fun p -> p.domain) Fmt.(option string);
-      Fmt.field "expires" (fun p -> p.expires) Fmt.(option pp_date_time);
-      Fmt.field "max_age" (fun p -> p.max_age) Fmt.(option int64);
-      Fmt.field "secure" (fun p -> p.secure) Fmt.bool;
-      Fmt.field "http_only" (fun p -> p.http_only) Fmt.bool;
-      Fmt.field "same_site" (fun p -> p.same_site) Fmt.(option pp_same_site);
-      Fmt.field "extension" (fun p -> p.extension) Fmt.(option string);
+      field "name" (fun p -> p.name) string;
+      field "value" (fun p -> p.value) string;
+      field "path" (fun p -> p.path) (option string);
+      field "domain" (fun p -> p.domain) (option string);
+      field "expires" (fun p -> p.expires) (option pp_date_time);
+      field "max_age" (fun p -> p.max_age) (option int64);
+      field "secure" (fun p -> p.secure) bool;
+      field "http_only" (fun p -> p.http_only) bool;
+      field "same_site" (fun p -> p.same_site) (option pp_same_site);
+      field "extension" (fun p -> p.extension) (option string);
     ]
   in
-  Fmt.(vbox (record fields) fmt' t)
+  pp_open_vbox fmt 0;
+  pp_print_list (fun fmt f -> f fmt t) fmt fields;
+  pp_close_box fmt ()
 
 and pp_date_time fmt tm =
   let weekday =
