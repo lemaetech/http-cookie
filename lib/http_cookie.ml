@@ -623,10 +623,10 @@ let parse_max_age max_age =
   match max_age with
   | None -> Ok None
   | Some ma ->
-      if ma <= 0L then
+      if ma <= -2L then
         Error
           (Format.sprintf
-             "Cookies 'Max-Age' attribute is less than or equal to 0")
+             "Cookies 'Max-Age' attribute is less than or equal to -2")
       else Ok (Some ma)
 
 let parse_opt ?error_label p input =
