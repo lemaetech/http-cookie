@@ -608,16 +608,6 @@ let parse_value value =
   | Ok _ as ok -> ok
   | Error _ -> Error (Format.sprintf "value: %s" value)
 
-let parse_max_age max_age =
-  match max_age with
-  | None -> Ok None
-  | Some ma ->
-      if ma <= 0L then
-        Error
-          (Format.sprintf
-             "Cookies 'Max-Age' attribute is less than or equal to 0")
-      else Ok (Some ma)
-
 let parse_opt ?error_label p input =
   match input with
   | Some input -> (
@@ -660,7 +650,6 @@ let create ?path ?domain ?expires ?max_age ?(secure = false) ?(http_only = true)
   let* value = parse_value value in
   let* domain = parse_opt ~error_label:"domain" domain_value domain in
   let* path = parse_opt ~error_label:"path" path_value path in
-  let* max_age = parse_max_age max_age in
   let+ extension =
     parse_opt ~error_label:"extension" extension_value extension
   in
@@ -777,7 +766,6 @@ let update_domain domain cookie =
 let update_expires expires cookie = { cookie with expires }
 
 let update_max_age max_age cookie =
-  let+ max_age = parse_max_age max_age in
   { cookie with max_age }
 
 let update_secure secure cookie = { cookie with secure }
