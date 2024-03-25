@@ -780,8 +780,6 @@ let expire cookie =
   {
     cookie with
     value = "";
-    path = None;
-    domain = None;
     expires = None;
     max_age = Some (-1L);
     extension = None;
