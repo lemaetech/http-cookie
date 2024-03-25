@@ -222,7 +222,7 @@ val update_name : string -> t -> (t, string) result
 val update_path : string option -> t -> (t, string) result
 val update_domain : string option -> t -> (t, string) result
 val update_expires : date_time option -> t -> t
-val update_max_age : int64 option -> t -> (t, string) result
+val update_max_age : int64 option -> t -> t
 val update_secure : bool -> t -> t
 val update_http_only : bool -> t -> t
 val update_same_site : same_site option -> t -> t

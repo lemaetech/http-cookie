@@ -287,7 +287,7 @@ let domain_name =
   *)
   let* () = option () (char '.' *> return ()) in
   let* start_pos = pos in
-  let* subdomain = subdomain in
+  let* subdomain in
   let* end_pos = pos in
   let len = end_pos - start_pos in
   if len > 255 then
@@ -607,17 +607,7 @@ let set_cookie_string =
 *)
 let cookie_string =
   let* cookies = sep_by1 (char ';' *> char '\x20') cookie_pair in
-  let name_counts = Hashtbl.create 0 in
-  List.iter
-    (fun (name, _) ->
-      match Hashtbl.find_opt name_counts name with
-      | Some count -> Hashtbl.replace name_counts name (count + 1)
-      | None -> Hashtbl.replace name_counts name 1)
-    cookies;
-  let name_counts = Hashtbl.to_seq_values name_counts |> List.of_seq in
-  if List.exists (fun count -> count > 1) name_counts then
-    fail "duplicate cookies found"
-  else return cookies
+  return cookies
 
 let parse_name name =
   parse_string ~consume:Consume.All cookie_name name |> function
@@ -628,16 +618,6 @@ let parse_value value =
   parse_string ~consume:Consume.All cookie_value value |> function
   | Ok _ as ok -> ok
   | Error _ -> Error (Format.sprintf "value: %s" value)
-
-let parse_max_age max_age =
-  match max_age with
-  | None -> Ok None
-  | Some ma ->
-      if ma <= 0L then
-        Error
-          (Format.sprintf
-             "Cookies 'Max-Age' attribute is less than or equal to 0")
-      else Ok (Some ma)
 
 let parse_opt ?error_label p input =
   match input with
@@ -681,7 +661,6 @@ let create ?path ?domain ?expires ?max_age ?(secure = false) ?(http_only = true)
   let* value = parse_value value in
   let* domain = parse_opt ~error_label:"domain" domain_value domain in
   let* path = parse_opt ~error_label:"path" path_value path in
-  let* max_age = parse_max_age max_age in
   let+ extension =
     parse_opt ~error_label:"extension" extension_value extension
   in
@@ -798,7 +777,6 @@ let update_domain domain cookie =
 let update_expires expires cookie = { cookie with expires }
 
 let update_max_age max_age cookie =
-  let+ max_age = parse_max_age max_age in
   { cookie with max_age }
 
 let update_secure secure cookie = { cookie with secure }
@@ -813,8 +791,6 @@ let expire cookie =
   {
     cookie with
     value = "";
-    path = None;
-    domain = None;
     expires = None;
     max_age = Some (-1L);
     extension = None;
