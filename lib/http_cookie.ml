@@ -607,17 +607,7 @@ let set_cookie_string =
 *)
 let cookie_string =
   let* cookies = sep_by1 (char ';' *> char '\x20') cookie_pair in
-  let name_counts = Hashtbl.create 0 in
-  List.iter
-    (fun (name, _) ->
-      match Hashtbl.find_opt name_counts name with
-      | Some count -> Hashtbl.replace name_counts name (count + 1)
-      | None -> Hashtbl.replace name_counts name 1)
-    cookies;
-  let name_counts = Hashtbl.to_seq_values name_counts |> List.of_seq in
-  if List.exists (fun count -> count > 1) name_counts then
-    fail "duplicate cookies found"
-  else return cookies
+  return cookies
 
 let parse_name name =
   parse_string ~consume:Consume.All cookie_name name |> function
@@ -633,10 +623,10 @@ let parse_max_age max_age =
   match max_age with
   | None -> Ok None
   | Some ma ->
-      if ma <= 0L then
+      if ma <= -2L then
         Error
           (Format.sprintf
-             "Cookies 'Max-Age' attribute is less than or equal to 0")
+             "Cookies 'Max-Age' attribute is less than or equal to -2")
       else Ok (Some ma)
 
 let parse_opt ?error_label p input =
@@ -813,8 +803,6 @@ let expire cookie =
   {
     cookie with
     value = "";
-    path = None;
-    domain = None;
     expires = None;
     max_age = Some (-1L);
     extension = None;
